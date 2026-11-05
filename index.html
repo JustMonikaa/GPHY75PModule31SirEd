@@ -9,7 +9,12 @@
     <script>
         window.MathJax = {
             tex: { inlineMath: [['\\(', '\\)']] },
-            startup: { typeset: false } // We typeset manually
+            startup: { typeset: false },
+            chtml: { 
+                scale: 1,
+                minScale: 0.8,
+                displayAlign: 'left'
+            }
         };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -25,7 +30,7 @@
         <svg id="icon-muted" class="hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 0 0 1.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06ZM17.78 9.22a.75.75 0 1 0-1.06 1.06L18.44 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06l1.72-1.72 1.72 1.72a.75.75 0 1 0 1.06-1.06L20.56 12l1.72-1.72a.75.75 0 1 0-1.06-1.06l-1.72 1.72-1.72-1.72Z" /></svg>
     </button>
 
-    <audio id="audio-intro" src="intro.mp3" loop preload="auto"></audio>
+    <audio id="audio-intro" src="intro.mp3" loop preload="auto" autoplay></audio>
     <audio id="audio-aura" src="aura.mp3" loop preload="auto"></audio>
 
     <!-- MAIN SCREEN -->
@@ -67,7 +72,9 @@
                 
                 <div id="feedback-container" class="hidden">
                     <h3>Explanation:</h3>
-                    <p id="feedback-text"></p>
+                    <div id="feedback-text-wrapper">
+                        <p id="feedback-text"></p>
+                    </div>
                 </div>
                 
                 <div class="nav-container">
@@ -80,7 +87,8 @@
     <!-- SCORE SCREEN -->
     <div id="score-screen" class="screen hidden">
         <div class="score-card">
-            <h2>Your Flame-Chaser Path is</h2>
+            <h2 id="score-student-name">Traveler's</h2>
+            <h2>Flame-Chaser Path is</h2>
             <h1 id="path-name" class="glow-text path-glow">Path Name</h1>
             <h3 id="score-display">0 / 0</h3>
             
@@ -90,6 +98,10 @@
                 <p id="flavor-text"></p>
             </div>
             
+            <div id="debug-controls" class="hidden" style="margin-top:20px;">
+                <p style="color:#d4af37; font-size:0.9rem;">[Debug Mode Active - Use Left/Right Arrows to Cycle Paths]</p>
+            </div>
+
             <button id="restart-btn" class="hsr-btn" style="margin-top: 20px;">Return to the Start</button>
         </div>
     </div>
