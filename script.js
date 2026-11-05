@@ -54,18 +54,18 @@ function getOrdinal(n) {
 function getPaths(attemptCount) {
     let ord = getOrdinal(attemptCount);
     return [
-        { name: "Trickery", logo: "Trickery", flavor: `Taking this trial for the ${ord} time, the cosmos is a stage, and you are not above peering behind the curtains to see how the props are arranged. Your wandering focus, marked by frequent tab-switching, reflects a mind constantly looking for hidden variables or outside assistance rather than trusting the internal system. Just as an open thermodynamic system constantly exchanges energy and matter with its surroundings, you sought external input to balance your own intellectual equations. Remember, true mastery requires reaching thermal equilibrium within your own isolated system of knowledge.` },
-        { name: "Strife", logo: "Strife", flavor: `On attempt ${attemptCount}, you sought an advantage but met profound resistance along the way. The path of Strife is fraught with battles against one's own limitations, reminding you that shortcuts do not guarantee victory in the realm of physics. Like latent heat—energy inputted into a system without a visible rise in temperature—your efforts may not have immediately translated into a high score, but they represent a hidden potential waiting for a phase change. Continue to apply heat to your studies, and eventually, the ice will melt.` },
-        { name: "Passage", logo: "Passage", flavor: `Having reached attempt ${attemptCount}, you walk this trial repeatedly, learning carefully from past missteps and recalculating your approach. Knowledge is not a single instantaneous reaction, but a journey of iteration and gradual expansion. By utilizing multiple attempts, you demonstrate the resilience of a cyclical thermodynamic process—absorbing heat, performing work, and returning to your initial state only to begin the cycle anew. You are willing to walk the Passage as many times as it takes until the formulas finally click into place.` },
-        { name: "Time", logo: "Time", flavor: `Throughout this ${ord} attempt, you pondered deeply, letting every precious second tick away as you meticulously weighed your choices. The River of Time flows slowly for those who carefully calculate every sensible and latent heat exchange before committing to a final answer. Much like particles approaching absolute zero, your rapid guesswork slowed to a complete halt, replaced by a profound and cautious stillness. While your patience is a virtue, remember that in the universe, entropy constantly increases—do not let time run out entirely.` },
-        { name: "Law", logo: "Law", flavor: `On attempt ${attemptCount}, you demonstrated an unwavering, singular focus. You adhered strictly to the bounds of the trial, looking neither left nor right, and abstained entirely from seeking outside assistance. The Law rewards those who command absolute self-discipline, treating the rules of the test as immutable as the Laws of Thermodynamics themselves. You recognize that energy cannot be magically created from external sources, and relied solely on the internal energy you brought into this enclosed system.` },
-        { name: "Reason", logo: "Reason", flavor: `Securing a flawless victory on attempt ${attemptCount}, your flawless logic and absolute precision shone brightly. Every calculation, every algebraic manipulation, and every conceptual grasp of thermal properties was executed with perfect accuracy. The Path of Reason is carved exclusively by those who view the chaotic universe not as a random jumble of hot and cold particles, but as a beautiful, balanced equation waiting to be solved. Your mind operates like a perfectly efficient Carnot engine, converting pure intellectual heat into maximum possible work without a single wasted joule.` },
-        { name: "Sky", logo: "Sky", flavor: `Blazing through attempt ${attemptCount}, you were swift, brilliant, and breathtakingly accurate as a meteor streaking across the atmosphere. You soared through the complex calculations and conceptual traps with a speed that left ordinary scholars in the dust. Like the rapid volumetric expansion of a superheated gas, your mind expanded to fill the container of this exam almost instantaneously. The Sky belongs exclusively to those who trust their well-honed instincts and possess a reaction time as volatile as a spark in pure oxygen.` },
-        { name: "Death", logo: "Death", flavor: `Attempt ${attemptCount} ends here. The end of one journey is merely the harsh, unyielding beginning of another. The concepts of thermal physics slipped away from your grasp this time, leaving your score as cold as the void of space. But in thermodynamics, energy is never truly destroyed; it merely changes form. From the ashes of this failure, a much deeper and more profound understanding can be born if you are willing to study the equations once more. Accept this temporary entropy, and let it fuel your next attempt.` },
-        { name: "Worldbearing", logo: "Worldbearing", flavor: `On your ${ord} attempt, you carry the immense weight of knowledge with quiet, enduring patience. Like the earth's massive oceans supporting the global climate with their incredibly high specific heat capacity, you demonstrated a solid, unshakeable foundation of thermal physics. You absorbed the difficult questions without a massive spike in temperature or stress, proving that your preparation was both deep and expansive. The world rests easily on the shoulders of those who understand the fundamental rules of energy.` },
-        { name: "Earth", logo: "Earth", flavor: `Reflected in attempt ${attemptCount}, you are solid, dependable, and thoroughly grounded in reality. You possess a strong baseline understanding of thermodynamics, forming a sturdy bedrock of knowledge that will easily withstand the test of time. Much like a dense metal conducting heat steadily and reliably, you navigated the equations step by step without faltering under pressure. While there is still room to grow and refine your calculations, your foundation is more than strong enough to build a towering intellect upon.` },
-        { name: "Ocean", logo: "Ocean", flavor: `By attempt ${attemptCount}, your knowledge ebbs and flows dramatically, much like the unpredictable tides of a vast sea. While some of your conceptual grasps are deep, profound, and mathematically sound, others remain floating merely on the surface of true understanding. You represent the swirling convection currents of learning—hot fluid rising, cold fluid sinking—in a constant state of flux. Do not be discouraged by the waves of confusion; instead, take a deep breath and dive further into the depths of the material.` },
-        { name: "Romance", logo: "Romance", flavor: `In attempt ${attemptCount}, you view the strict laws of thermodynamics not just as cold, heartless equations on a chalkboard, but as a beautiful, intricate dance of energy, temperature, and matter. Your journey is driven deeply by passion, curiosity, and an innate desire to understand how the universe keeps itself warm. Whether it is the latent heat of a melting star or the simple expansion of a copper wire, you find poetry in the physics. Keep that spark of wonder alive as you continue your studies.` }
+        { name: "Trickery", logo: "Trickery", flavor: `Taking this trial for the ${ord} cycle, the cosmos is a stage, and you are not above peering behind the curtains to see how the props are arranged. Your wandering focus, marked by frequent tab-switching, reflects a mind constantly looking for hidden variables or outside assistance rather than trusting the internal system. Just as an open thermodynamic system constantly exchanges energy and matter with its surroundings, you sought external input to balance your own intellectual equations. Remember, true mastery requires reaching thermal equilibrium within your own isolated system of knowledge.` },
+        { name: "Strife", logo: "Strife", flavor: `On cycle ${attemptCount}, you sought an advantage but met profound resistance along the way. The path of Strife is fraught with battles against one's own limitations, reminding you that shortcuts do not guarantee victory in the realm of physics. Like latent heat, energy inputted into a system without a visible rise in temperature, your efforts may not have immediately translated into a high score, but they represent a hidden potential waiting for a phase change. Continue to apply heat to your studies, and eventually, the ice will melt.` },
+        { name: "Passage", logo: "Passage", flavor: `Having reached cycle ${attemptCount}, you walk this trial repeatedly, learning carefully from past missteps and recalculating your approach. Knowledge is not a single instantaneous reaction, but a journey of iteration and gradual expansion. By utilizing multiple cycles, you demonstrate the resilience of a cyclical thermodynamic process: absorbing heat, performing work, and returning to your initial state only to begin the cycle anew. You are willing to walk the Passage as many times as it takes until the formulas finally click into place.` },
+        { name: "Time", logo: "Time", flavor: `Throughout this ${ord} cycle, you pondered deeply, letting every precious second tick away as you meticulously weighed your choices. The River of Time flows slowly for those who carefully calculate every sensible and latent heat exchange before committing to a final answer. Much like particles approaching absolute zero, your rapid guesswork slowed to a complete halt, replaced by a profound and cautious stillness. While your patience is a virtue, remember that in the universe, entropy constantly increases, so do not let time run out entirely.` },
+        { name: "Law", logo: "Law", flavor: `On cycle ${attemptCount}, you demonstrated an unwavering, singular focus. You adhered strictly to the bounds of the trial, looking neither left nor right, and abstained entirely from seeking outside assistance. The Law rewards those who command absolute self-discipline, treating the rules of the test as immutable as the Laws of Thermodynamics themselves. You recognize that energy cannot be magically created from external sources, and relied solely on the internal energy you brought into this enclosed system.` },
+        { name: "Reason", logo: "Reason", flavor: `Securing a flawless victory on cycle ${attemptCount}, your flawless logic and absolute precision shone brightly. Every calculation, every algebraic manipulation, and every conceptual grasp of thermal properties was executed with perfect accuracy. The Path of Reason is carved exclusively by those who view the chaotic universe not as a random jumble of hot and cold particles, but as a beautiful, balanced equation waiting to be solved. Your mind operates like a perfectly efficient Carnot engine, converting pure intellectual heat into maximum possible work without a single wasted joule.` },
+        { name: "Sky", logo: "Sky", flavor: `Blazing through cycle ${attemptCount}, you were swift, brilliant, and breathtakingly accurate as a meteor streaking across the atmosphere. You soared through the complex calculations and conceptual traps with a speed that left ordinary scholars in the dust. Like the rapid volumetric expansion of a superheated gas, your mind expanded to fill the container of this exam almost instantaneously. The Sky belongs exclusively to those who trust their well-honed instincts and possess a reaction time as volatile as a spark in pure oxygen.` },
+        { name: "Death", logo: "Death", flavor: `Cycle ${attemptCount} ends here. The end of one journey is merely the harsh, unyielding beginning of another. The concepts of thermal physics slipped away from your grasp this time, leaving your score as cold as the void of space. But in thermodynamics, energy is never truly destroyed; it merely changes form. From the ashes of this failure, a much deeper and more profound understanding can be born if you are willing to study the equations once more. Accept this temporary entropy, and let it fuel your next cycle.` },
+        { name: "Worldbearing", logo: "Worldbearing", flavor: `On your ${ord} cycle, you carry the immense weight of knowledge with quiet, enduring patience. Like the earth's massive oceans supporting the global climate with their incredibly high specific heat capacity, you demonstrated a solid, unshakeable foundation of thermal physics. You absorbed the difficult questions without a massive spike in temperature or stress, proving that your preparation was both deep and expansive. The world rests easily on the shoulders of those who understand the fundamental rules of energy.` },
+        { name: "Earth", logo: "Earth", flavor: `Reflected in cycle ${attemptCount}, you are solid, dependable, and thoroughly grounded in reality. You possess a strong baseline understanding of thermodynamics, forming a sturdy bedrock of knowledge that will easily withstand the test of time. Much like a dense metal conducting heat steadily and reliably, you navigated the equations step by step without faltering under pressure. While there is still room to grow and refine your calculations, your foundation is more than strong enough to build a towering intellect upon.` },
+        { name: "Ocean", logo: "Ocean", flavor: `By cycle ${attemptCount}, your knowledge ebbs and flows dramatically, much like the unpredictable tides of a vast sea. While some of your conceptual grasps are deep, profound, and mathematically sound, others remain floating merely on the surface of true understanding. You represent the swirling convection currents of learning, hot fluid rising and cold fluid sinking, in a constant state of flux. Do not be discouraged by the waves of confusion; instead, take a deep breath and dive further into the depths of the material.` },
+        { name: "Romance", logo: "Romance", flavor: `In cycle ${attemptCount}, you view the strict laws of thermodynamics not just as cold, heartless equations on a chalkboard, but as a beautiful, intricate dance of energy, temperature, and matter. Your journey is driven deeply by passion, curiosity, and an innate desire to understand how the universe keeps itself warm. Whether it is the latent heat of a melting star or the simple expansion of a copper wire, you find poetry in the physics. Keep that spark of wonder alive as you continue your studies.` }
     ];
 }
 
@@ -253,6 +253,12 @@ function activateDebugMode() {
 
     // Initial Path display
     studentName = studentNameInput.value.trim() || "Debug";
+    
+    // Hide UI elements as requested for Debug Mode
+    document.getElementById('score-student-name').style.display = 'none';
+    document.getElementById('score-display').style.display = 'none';
+    document.querySelectorAll('.attempts-badge').forEach(b => b.style.display = 'none');
+    
     let currentPaths = getPaths(attempts + 1); // Mock next attempt
     renderScoreScreen(currentPaths[debugPathIndex]);
     
@@ -499,7 +505,7 @@ function shuffleProblem(prob) {
     };
 }
 
-// --- GENERATORS USING sci() STRICTLY ---
+// --- GENERATORS USING sci() STRICTLY AND UNITS ---
 const generators = [
     function() {
         let L0 = (Math.random()*10+5).toFixed(1);
@@ -512,7 +518,7 @@ const generators = [
         return {
             q: `A steel beam has an initial length of \\( ${L0} \\text{ m} \\). The coefficient of linear expansion is \\( \\alpha = ${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1} \\). If the temperature increases by \\( ${dT} \\, ^\\circ\\text{C} \\), what is the change in the beam's length?`,
             options: [`\\( ${ans} \\text{ m} \\)`, `\\( ${d1} \\text{ m} \\)`, `\\( ${d2} \\text{ m} \\)`, `\\( ${d3} \\text{ m} \\)`], answer: 0,
-            feedback: `\\( \\Delta L = \\alpha L_0 \\Delta T = (${a} \\times 10^{-5})(${L0})(${dT}) = ${ans} \\text{ m} \\)`
+            feedback: `\\( \\Delta L = \\alpha L_0 \\Delta T = (${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1})(${L0} \\text{ m})(${dT} \\, ^\\circ\\text{C}) = ${ans} \\text{ m} \\)`
         };
     },
     function() {
@@ -526,7 +532,7 @@ const generators = [
         return {
             q: `A copper pipe of length \\( ${L0} \\text{ m} \\) expands by \\( ${dL} \\text{ m} \\). Given \\( \\alpha = ${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1} \\), what was the temperature change?`,
             options: [`\\( ${dT} \\, ^\\circ\\text{C} \\)`, `\\( ${d1} \\, ^\\circ\\text{C} \\)`, `\\( ${d2} \\, ^\\circ\\text{C} \\)`, `\\( ${d3} \\, ^\\circ\\text{C} \\)`], answer: 0,
-            feedback: `\\( \\Delta T = \\frac{\\Delta L}{\\alpha L_0} = \\frac{${dL}}{(${a} \\times 10^{-5})(${L0})} = ${dT} \\, ^\\circ\\text{C} \\)`
+            feedback: `\\( \\Delta T = \\frac{\\Delta L}{\\alpha L_0} = \\frac{${dL} \\text{ m}}{(${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1})(${L0} \\text{ m})} = ${dT} \\, ^\\circ\\text{C} \\)`
         };
     },
     function() {
@@ -540,7 +546,7 @@ const generators = [
         return {
             q: `A container holds \\( ${V0} \\text{ m}^3 \\) of liquid. The volume expansion coefficient of the liquid is \\( \\beta = ${b} \\times 10^{-4} \\, ^\\circ\\text{C}^{-1} \\). If heated by \\( ${dT} \\, ^\\circ\\text{C} \\), how much does the volume of the liquid increase?`,
             options: [`\\( ${ans} \\text{ m}^3 \\)`, `\\( ${d1} \\text{ m}^3 \\)`, `\\( ${d2} \\text{ m}^3 \\)`, `\\( ${d3} \\text{ m}^3 \\)`], answer: 0,
-            feedback: `\\( \\Delta V = \\beta V_0 \\Delta T = (${b} \\times 10^{-4})(${V0})(${dT}) = ${ans} \\text{ m}^3 \\)`
+            feedback: `\\( \\Delta V = \\beta V_0 \\Delta T = (${b} \\times 10^{-4} \\, ^\\circ\\text{C}^{-1})(${V0} \\text{ m}^3)(${dT} \\, ^\\circ\\text{C}) = ${ans} \\text{ m}^3 \\)`
         };
     },
     function() {
@@ -554,7 +560,7 @@ const generators = [
         return {
             q: `A solid metal sphere has an initial volume of \\( ${V0} \\text{ cm}^3 \\) and a linear expansion coefficient \\( \\alpha = ${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1} \\). If the temperature increases by \\( ${dT} \\, ^\\circ\\text{C} \\), what is its change in volume?`,
             options: [`\\( ${ans} \\text{ cm}^3 \\)`, `\\( ${d1} \\text{ cm}^3 \\)`, `\\( ${d2} \\text{ cm}^3 \\)`, `\\( ${d3} \\text{ cm}^3 \\)`], answer: 0,
-            feedback: `For a solid, \\( \\beta \\approx 3\\alpha \\). So \\( \\Delta V = 3\\alpha V_0 \\Delta T = 3(${a} \\times 10^{-5})(${V0})(${dT}) = ${ans} \\text{ cm}^3 \\)`
+            feedback: `For a solid, \\( \\beta \\approx 3\\alpha \\). So \\( \\Delta V = 3\\alpha V_0 \\Delta T = 3(${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1})(${V0} \\text{ cm}^3)(${dT} \\, ^\\circ\\text{C}) = ${ans} \\text{ cm}^3 \\)`
         };
     },
     function() {
@@ -568,7 +574,7 @@ const generators = [
         return {
             q: `How much heat is required to raise the temperature of \\( ${m} \\text{ kg} \\) of water by \\( ${dT} \\, ^\\circ\\text{C} \\)? \\( (c_{\\text{water}} = 4186 \\text{ J/kg}\\cdot^\\circ\\text{C}) \\)`,
             options: [`\\( ${ans} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], answer: 0,
-            feedback: `\\( Q = mc\\Delta T = (${m})(4186)(${dT}) = ${ans} \\text{ J} \\)`
+            feedback: `\\( Q = mc\\Delta T = (${m} \\text{ kg})(4186 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(${dT} \\, ^\\circ\\text{C}) = ${ans} \\text{ J} \\)`
         };
     },
     function() {
@@ -584,7 +590,7 @@ const generators = [
         return {
             q: `\\( ${Q} \\text{ J} \\) of heat is added to a \\( ${m} \\text{ kg} \\) block of aluminum initially at \\( ${T0} \\, ^\\circ\\text{C} \\). Find its final temperature. \\( (c_{\\text{Al}} = 900 \\text{ J/kg}\\cdot^\\circ\\text{C}) \\)`,
             options: [`\\( ${Tf} \\, ^\\circ\\text{C} \\)`, `\\( ${d1} \\, ^\\circ\\text{C} \\)`, `\\( ${d2} \\, ^\\circ\\text{C} \\)`, `\\( ${d3} \\, ^\\circ\\text{C} \\)`], answer: 0,
-            feedback: `\\( \\Delta T = \\frac{Q}{mc} = \\frac{${Q}}{(${m})(900)} = ${dT.toFixed(2)} \\, ^\\circ\\text{C} \\). \\( T_f = T_i + \\Delta T = ${Tf} \\, ^\\circ\\text{C} \\)`
+            feedback: `\\( \\Delta T = \\frac{Q}{mc} = \\frac{${Q} \\text{ J}}{(${m} \\text{ kg})(900 \\text{ J/(kg}\\cdot^\\circ\\text{C}))} = ${dT.toFixed(2)} \\, ^\\circ\\text{C} \\). \\( T_f = T_i + \\Delta T = ${Tf} \\, ^\\circ\\text{C} \\)`
         };
     },
     function() {
@@ -597,7 +603,7 @@ const generators = [
         return {
             q: `How much heat is required to completely melt \\( ${m} \\text{ kg} \\) of ice at \\( 0 \\, ^\\circ\\text{C} \\)? \\( (L_f = 3.33 \\times 10^5 \\text{ J/kg}) \\)`,
             options: [`\\( ${ans} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], answer: 0,
-            feedback: `\\( Q = mL_f = (${m})(3.33 \\times 10^5) = ${ans} \\text{ J} \\)`
+            feedback: `\\( Q = mL_f = (${m} \\text{ kg})(3.33 \\times 10^5 \\text{ J/kg}) = ${ans} \\text{ J} \\)`
         };
     },
     function() {
@@ -611,7 +617,7 @@ const generators = [
         return {
             q: `How much mass of steam at \\( 100 \\, ^\\circ\\text{C} \\) condenses when \\( ${Q} \\times 10^6 \\text{ J} \\) of heat is released? \\( (L_v = 2.26 \\times 10^6 \\text{ J/kg}) \\)`,
             options: [`\\( ${m} \\text{ kg} \\)`, `\\( ${d1} \\text{ kg} \\)`, `\\( ${d2} \\text{ kg} \\)`, `\\( ${d3} \\text{ kg} \\)`], answer: 0,
-            feedback: `\\( m = \\frac{Q}{L_v} = \\frac{${Q} \\times 10^6}{2.26 \\times 10^6} = ${m} \\text{ kg} \\)`
+            feedback: `\\( m = \\frac{Q}{L_v} = \\frac{${Q} \\times 10^6 \\text{ J}}{2.26 \\times 10^6 \\text{ J/kg}} = ${m} \\text{ kg} \\)`
         };
     },
     function() {
@@ -628,7 +634,7 @@ const generators = [
         return {
             q: `A \\( ${mc} \\text{ kg} \\) piece of copper at \\( ${Tc} \\, ^\\circ\\text{C} \\) is placed in \\( ${mw} \\text{ kg} \\) of water at \\( ${Tw} \\, ^\\circ\\text{C} \\). What is the final equilibrium temperature? \\( (c_{\\text{Cu}} = 387, c_{\\text{water}} = 4186 \\text{ in SI units}) \\)`,
             options: [`\\( ${Tf} \\, ^\\circ\\text{C} \\)`, `\\( ${d1} \\, ^\\circ\\text{C} \\)`, `\\( ${d2} \\, ^\\circ\\text{C} \\)`, `\\( ${d3} \\, ^\\circ\\text{C} \\)`], answer: 0,
-            feedback: `\\( m_c c_c (T_i - T_f) = m_w c_w (T_f - T_w) \\). Solving for \\( T_f \\) gives \\( ${Tf} \\, ^\\circ\\text{C} \\)`
+            feedback: `\\( m_c c_c (T_i - T_f) = m_w c_w (T_f - T_w) \\Rightarrow (${mc} \\text{ kg})(387 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(${Tc} \\, ^\\circ\\text{C} - T_f) = (${mw} \\text{ kg})(4186 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(T_f - ${Tw} \\, ^\\circ\\text{C}) \\Rightarrow T_f = ${Tf} \\, ^\\circ\\text{C} \\)`
         };
     },
     function() {
@@ -643,9 +649,9 @@ const generators = [
         let d2 = (4186 * (T_f - T_w) / (T_unk - T_f)).toFixed(0);
         let d3 = (c_unk / 2).toFixed(0);
         return {
-            q: `A \\( ${m_unk} \\text{ kg} \\) unknown metal at \\( ${T_unk} \\, ^\\circ\\text{C} \\) is dropped into \\( ${m_w} \\text{ kg} \\) of water at \\( ${T_w} \\, ^\\circ\\text{C} \\). The final temperature is \\( ${T_f} \\, ^\\circ\\text{C} \\). Find the specific heat of the metal. \\( (c_{\\text{water}} = 4186 \\text{ J/kg}\\cdot^\\circ\\text{C}) \\)`,
+            q: `A \\( ${m_unk} \\text{ kg} \\) unknown metal \\( x \\) at \\( ${T_unk} \\, ^\\circ\\text{C} \\) is dropped into \\( ${m_w} \\text{ kg} \\) of water at \\( ${T_w} \\, ^\\circ\\text{C} \\). The final temperature is \\( ${T_f} \\, ^\\circ\\text{C} \\). Find the specific heat of the metal. \\( (c_{\\text{water}} = 4186 \\text{ J/kg}\\cdot^\\circ\\text{C}) \\)`,
             options: [`\\( ${c_unk} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d1} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d2} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d3} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`], answer: 0,
-            feedback: `\\( m_{unk} c_{unk} (T_i - T_f) = m_w c_w (T_f - T_w) \\). Solving for \\( c_{unk} \\) gives \\( ${c_unk} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`
+            feedback: `\\( m_x c_x (T_i - T_f) = m_w c_w (T_f - T_w) \\Rightarrow (${m_unk} \\text{ kg})c_x(${T_unk} \\, ^\\circ\\text{C} - ${T_f} \\, ^\\circ\\text{C}) = (${m_w} \\text{ kg})(4186 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(${T_f} \\, ^\\circ\\text{C} - ${T_w} \\, ^\\circ\\text{C}) \\Rightarrow c_x = ${c_unk} \\text{ J/(kg}\\cdot^\\circ\\text{C}) \\)`
         };
     },
     function() {
@@ -662,7 +668,7 @@ const generators = [
         return {
             q: `Calculate the total heat required to convert \\( ${m} \\text{ kg} \\) of ice at \\( ${Ti} \\, ^\\circ\\text{C} \\) to water at \\( ${Tf} \\, ^\\circ\\text{C} \\). \\( (c_{\\text{ice}} = 2090, c_{\\text{water}} = 4186, L_f = 3.33 \\times 10^5 \\text{ in SI units}) \\)`,
             options: [`\\( ${Q_tot} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], answer: 0,
-            feedback: `\\( Q = Q_{\\text{warm ice}} + Q_{\\text{melt}} + Q_{\\text{warm water}} = mc_{\\text{ice}}\\Delta T_1 + mL_f + mc_{\\text{water}}\\Delta T_2 = ${Q_tot} \\text{ J} \\)`
+            feedback: `\\( Q = Q_{\\text{warm ice}} + Q_{\\text{melt}} + Q_{\\text{warm water}} = (${m} \\text{ kg})(2090 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(0 - (${Ti})) \\, ^\\circ\\text{C} + (${m} \\text{ kg})(3.33 \\times 10^5 \\text{ J/kg}) + (${m} \\text{ kg})(4186 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(${Tf} - 0) \\, ^\\circ\\text{C} = ${Q_tot} \\text{ J} \\)`
         };
     },
     function() {
@@ -677,7 +683,7 @@ const generators = [
         return {
             q: `How much heat must be added to \\( ${m} \\text{ kg} \\) of water at \\( ${Ti} \\, ^\\circ\\text{C} \\) to completely boil it into steam at \\( 100 \\, ^\\circ\\text{C} \\)? \\( (c_{\\text{water}} = 4186, L_v = 2.26 \\times 10^6 \\text{ in SI units}) \\)`,
             options: [`\\( ${Q_tot} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], answer: 0,
-            feedback: `\\( Q = Q_{\\text{warm water}} + Q_{\\text{boil}} = mc_{\\text{water}}(100 - ${Ti}) + mL_v = ${Q_tot} \\text{ J} \\)`
+            feedback: `\\( Q = Q_{\\text{warm water}} + Q_{\\text{boil}} = (${m} \\text{ kg})(4186 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(100 - ${Ti}) \\, ^\\circ\\text{C} + (${m} \\text{ kg})(2.26 \\times 10^6 \\text{ J/kg}) = ${Q_tot} \\text{ J} \\)`
         };
     },
     function() {
@@ -689,7 +695,7 @@ const generators = [
         return {
             q: `Convert \\( ${C} \\, ^\\circ\\text{C} \\) to Fahrenheit.`,
             options: [`\\( ${F} \\, ^\\circ\\text{F} \\)`, `\\( ${d1} \\, ^\\circ\\text{F} \\)`, `\\( ${d2} \\, ^\\circ\\text{F} \\)`, `\\( ${d3} \\, ^\\circ\\text{F} \\)`], answer: 0,
-            feedback: `\\( T_F = \\frac{9}{5} T_C + 32 = \\frac{9}{5}(${C}) + 32 = ${F} \\, ^\\circ\\text{F} \\)`
+            feedback: `\\( T_F = \\frac{9}{5} T_C + 32 = \\frac{9}{5}(${C} \\, ^\\circ\\text{C}) + 32 = ${F} \\, ^\\circ\\text{F} \\)`
         };
     },
     function() {
@@ -702,7 +708,7 @@ const generators = [
         return {
             q: `Convert \\( ${F} \\, ^\\circ\\text{F} \\) to Kelvin.`,
             options: [`\\( ${K} \\text{ K} \\)`, `\\( ${d1} \\text{ K} \\)`, `\\( ${d2} \\text{ K} \\)`, `\\( ${d3} \\text{ K} \\)`], answer: 0,
-            feedback: `First to Celsius: \\( T_C = \\frac{5}{9}(T_F - 32) = ${C.toFixed(2)} \\, ^\\circ\\text{C} \\). Then to Kelvin: \\( T_K = T_C + 273.15 = ${K} \\text{ K} \\)`
+            feedback: `\\( T_C = \\frac{5}{9}(T_F - 32) = \\frac{5}{9}(${F} \\, ^\\circ\\text{F} - 32) = ${C.toFixed(2)} \\, ^\\circ\\text{C} \\Rightarrow T_K = T_C + 273.15 = ${K} \\text{ K} \\)`
         };
     }
 ];
@@ -820,6 +826,12 @@ function selectAnswer(selectedIndex, btnElement) {
 }
 
 nextBtn.addEventListener('click', () => {
+    // 15% chance to glitch screen upon next question
+    if (Math.random() < 0.15) {
+        bookContainer.classList.add('glitch-effect');
+        setTimeout(() => bookContainer.classList.remove('glitch-effect'), 500);
+    }
+
     currentQIndex++;
     if (currentQIndex < quizQuestions.length) {
         bookContainer.style.opacity = 0;
@@ -849,6 +861,12 @@ function endQuiz() {
 }
 
 function renderScoreScreen(pathData) {
+    // Show UI elements in case they were hidden by Debug mode
+    document.getElementById('score-student-name').style.display = 'block';
+    document.getElementById('score-display').style.display = 'block';
+    document.getElementById('score-title-text').style.display = 'block';
+    document.querySelectorAll('.attempts-badge').forEach(b => b.style.display = 'block');
+
     document.getElementById('score-student-name').innerText = `${studentName}'s`;
     document.getElementById('path-name').innerText = pathData.name;
     document.getElementById('score-display').innerText = `${score} / ${quizQuestions.length}`;
