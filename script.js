@@ -89,43 +89,47 @@ function getPaths(attemptCount) {
 
 // Generate background ethereal glitter
 const glitterContainer = document.getElementById('glitter-container');
-function createGlitter() {
-    let star = document.createElement('div');
-    star.className = 'glitter-particle';
-    star.style.left = `${Math.random() * 100}vw`;
-    star.style.top = `${Math.random() * 100}vh`;
-    let size = Math.random() * 4 + 2;
-    star.style.width = `${size}px`;
-    star.style.height = `${size}px`;
-    star.style.animation = `floatParticle ${Math.random() * 5 + 3}s ease-in-out infinite`;
-    star.style.animationDelay = `${Math.random() * 5}s`;
-    glitterContainer.appendChild(star);
+if (glitterContainer) {
+    function createGlitter() {
+        let star = document.createElement('div');
+        star.className = 'glitter-particle';
+        star.style.left = `${Math.random() * 100}vw`;
+        star.style.top = `${Math.random() * 100}vh`;
+        let size = Math.random() * 4 + 2;
+        star.style.width = `${size}px`;
+        star.style.height = `${size}px`;
+        star.style.animation = `floatParticle ${Math.random() * 5 + 3}s ease-in-out infinite`;
+        star.style.animationDelay = `${Math.random() * 5}s`;
+        glitterContainer.appendChild(star);
+    }
+    for (let i = 0; i < 70; i++) createGlitter();
 }
-for (let i = 0; i < 70; i++) createGlitter();
 
 // --- FULLSCREEN CONTROLS ---
-fsBtn.addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch((err) => {
-            console.log(`Error attempting to enable fullscreen: ${err.message}`);
-        });
-    } else {
-        document.exitFullscreen();
-    }
-});
+if (fsBtn) {
+    fsBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch((err) => {
+                console.log(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    });
+}
 document.addEventListener('fullscreenchange', () => {
     if (document.fullscreenElement) {
-        iconFsEnter.classList.add('hidden');
-        iconFsExit.classList.remove('hidden');
+        if (iconFsEnter) iconFsEnter.classList.add('hidden');
+        if (iconFsExit) iconFsExit.classList.remove('hidden');
     } else {
-        iconFsEnter.classList.remove('hidden');
-        iconFsExit.classList.add('hidden');
+        if (iconFsEnter) iconFsEnter.classList.remove('hidden');
+        if (iconFsExit) iconFsExit.classList.add('hidden');
     }
 });
 
 // --- AUDIO SYSTEM ---
 function forcePlay(audioEl, volume, startTime = null) {
-    if (isMuted) return;
+    if (isMuted || !audioEl) return;
     if (startTime !== null) {
         audioEl.currentTime = startTime;
     }
@@ -136,6 +140,7 @@ function forcePlay(audioEl, volume, startTime = null) {
     }
 }
 function forcePause(audioEl) {
+    if (!audioEl) return;
     audioEl.pause();
 }
 
@@ -144,32 +149,34 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 document.body.addEventListener('click', () => {
-    if (!isMuted && audioIntro.paused && !inQuiz && !isDebugMode && !ahaEventTriggered) {
+    if (!isMuted && audioIntro && audioIntro.paused && !inQuiz && !isDebugMode && !ahaEventTriggered) {
         forcePlay(audioIntro, 0.25, 51);
     }
 }, { once: true });
 
-muteBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); 
-    isMuted = !isMuted;
-    if (isMuted) {
-        iconMuted.classList.remove('hidden');
-        iconUnmuted.classList.add('hidden');
-        forcePause(audioIntro);
-        forcePause(audioAura);
-        forcePause(audioStatic);
-    } else {
-        iconMuted.classList.add('hidden');
-        iconUnmuted.classList.remove('hidden');
-        if (ahaEventTriggered) {
-            forcePlay(audioStatic, 0.4);
-        } else if (inQuiz) {
-            forcePlay(audioAura, 0.05);
+if (muteBtn) {
+    muteBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); 
+        isMuted = !isMuted;
+        if (isMuted) {
+            if (iconMuted) iconMuted.classList.remove('hidden');
+            if (iconUnmuted) iconUnmuted.classList.add('hidden');
+            forcePause(audioIntro);
+            forcePause(audioAura);
+            forcePause(audioStatic);
         } else {
-            forcePlay(audioIntro, 0.25);
+            if (iconMuted) iconMuted.classList.add('hidden');
+            if (iconUnmuted) iconUnmuted.classList.remove('hidden');
+            if (ahaEventTriggered) {
+                forcePlay(audioStatic, 0.4);
+            } else if (inQuiz) {
+                forcePlay(audioAura, 0.05);
+            } else {
+                forcePlay(audioIntro, 0.25);
+            }
         }
-    }
-});
+    });
+}
 
 // --- DEBUG MODE LOGIC (Ctrl + Alt + Shift + M) ---
 let keyState = { ctrl: false, alt: false, shift: false, m: false };
@@ -205,27 +212,36 @@ window.addEventListener('keyup', (e) => {
 function activateDebugMode() {
     isDebugMode = true;
     inQuiz = false;
-    document.getElementById('debug-controls').classList.remove('hidden');
+    let debugControls = document.getElementById('debug-controls');
+    if (debugControls) debugControls.classList.remove('hidden');
     
-    screens.main.classList.remove('active');
-    screens.main.classList.add('hidden');
-    screens.question.classList.remove('active');
-    screens.question.classList.add('hidden');
-    nameDialog.classList.add('hidden');
+    if (screens.main) {
+        screens.main.classList.remove('active');
+        screens.main.classList.add('hidden');
+    }
+    if (screens.question) {
+        screens.question.classList.remove('active');
+        screens.question.classList.add('hidden');
+    }
+    if (nameDialog) nameDialog.classList.add('hidden');
     
     forcePause(audioAura);
     forcePlay(audioIntro, 0.25, 118);
 
     studentName = "";
-    document.getElementById('score-student-name').style.display = 'none';
-    document.getElementById('score-display').style.display = 'none';
+    let sNameEl = document.getElementById('score-student-name');
+    let sDispEl = document.getElementById('score-display');
+    if (sNameEl) sNameEl.style.display = 'none';
+    if (sDispEl) sDispEl.style.display = 'none';
     document.querySelectorAll('.attempts-badge').forEach(b => b.style.display = 'none');
     
     let currentPaths = getPaths(1); 
     renderScoreScreen(currentPaths[debugPathIndex]);
     
-    screens.score.classList.remove('hidden');
-    setTimeout(() => screens.score.classList.add('active'), 100);
+    if (screens.score) {
+        screens.score.classList.remove('hidden');
+        setTimeout(() => screens.score.classList.add('active'), 100);
+    }
 }
 
 function cycleDebugPath(direction) {
@@ -236,7 +252,6 @@ function cycleDebugPath(direction) {
     
     renderScoreScreen(currentPaths[debugPathIndex]);
 }
-
 
 // --- CRYPTOGRAPHIC HASHING ---
 async function sha256(message) {
@@ -756,33 +771,43 @@ document.body.addEventListener("mouseleave", () => {
     if (inQuiz) mouseLeaves++;
 });
 
-document.getElementById('start-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    nameDialog.classList.remove('hidden');
-});
+const startBtn = document.getElementById('start-btn');
+if (startBtn) {
+    startBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (nameDialog) nameDialog.classList.remove('hidden');
+    });
+}
 
-document.getElementById('submit-name-btn').addEventListener('click', () => {
-    studentName = studentNameInput.value.trim() || "Nameless Traveler";
-    
-    // Increment ONLY when starting a fresh quiz session
-    attempts++;
-    localStorage.setItem('hsr_quiz_attempts', attempts.toString());
-    updateAttemptDisplays(attempts);
-    
-    // Audio Crossfade: Intro Out -> Aura In
-    forcePause(audioIntro);
-    forcePlay(audioAura, 0.05);
-    
-    nameDialog.classList.add('hidden');
-    startQuiz();
-});
+const submitNameBtn = document.getElementById('submit-name-btn');
+if (submitNameBtn) {
+    submitNameBtn.addEventListener('click', () => {
+        if (studentNameInput) {
+            studentName = studentNameInput.value.trim() || "Nameless Traveler";
+        } else {
+            studentName = "Nameless Traveler";
+        }
+        
+        attempts++;
+        localStorage.setItem('hsr_quiz_attempts', attempts.toString());
+        updateAttemptDisplays(attempts);
+        
+        forcePause(audioIntro);
+        forcePlay(audioAura, 0.05);
+        
+        if (nameDialog) nameDialog.classList.add('hidden');
+        startQuiz();
+    });
+}
 
 function switchScreen(oldScreen, newScreen) {
-    oldScreen.classList.remove('active');
+    if (oldScreen) oldScreen.classList.remove('active');
     setTimeout(() => {
-        newScreen.classList.remove('hidden');
-        void newScreen.offsetWidth; // Trigger reflow
-        newScreen.classList.add('active');
+        if (newScreen) {
+            newScreen.classList.remove('hidden');
+            void newScreen.offsetWidth; 
+            newScreen.classList.add('active');
+        }
     }, 800);
 }
 
@@ -811,7 +836,6 @@ async function startQuiz() {
     score = 0; currentQIndex = 0; altTabs = 0; mouseLeaves = 0;
     inQuiz = true; startTime = new Date();
     
-    // Pick a random question index for Aha event (past question 10)
     if (quizQuestions.length > 10) {
         ahaTargetQIndex = Math.floor(Math.random() * (quizQuestions.length - 10)) + 10;
     }
@@ -821,39 +845,41 @@ async function startQuiz() {
 }
 
 function loadQuestion() {
-    feedbackContainer.classList.add('hidden');
-    nextBtn.classList.add('hidden');
-    scanlineOverlay.classList.remove('hidden'); // Guarantee scanlines are visible
+    if (feedbackContainer) feedbackContainer.classList.add('hidden');
+    if (nextBtn) nextBtn.classList.add('hidden');
+    if (scanlineOverlay) scanlineOverlay.classList.remove('hidden'); 
     
-    // Aha Event Logic
     if (currentQIndex === ahaTargetQIndex && !ahaEventTriggered) {
         triggerAhaMask();
     }
     
     let currentQ = quizQuestions[currentQIndex];
-    qNum.innerText = `Question ${currentQIndex + 1} of ${quizQuestions.length}`;
-    qText.innerHTML = currentQ.q;
+    if (qNum) qNum.innerText = `Question ${currentQIndex + 1} of ${quizQuestions.length}`;
+    if (qText) qText.innerHTML = currentQ.q;
     
-    choicesContainer.innerHTML = '';
-    currentQ.options.forEach((opt, idx) => {
-        let btn = document.createElement('button');
-        btn.className = 'choice-btn';
-        btn.innerHTML = opt;
-        btn.style.animationDelay = `${idx * 0.1}s`;
-        btn.classList.add('animate-in');
-        btn.onclick = () => selectAnswer(idx, btn);
-        choicesContainer.appendChild(btn);
-    });
+    if (choicesContainer) {
+        choicesContainer.innerHTML = '';
+        currentQ.options.forEach((opt, idx) => {
+            let btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.innerHTML = opt;
+            btn.style.animationDelay = `${idx * 0.1}s`;
+            btn.classList.add('animate-in');
+            btn.onclick = () => selectAnswer(idx, btn);
+            choicesContainer.appendChild(btn);
+        });
+    }
     
-    if (window.MathJax && MathJax.typesetPromise) {
+    if (window.MathJax && MathJax.typesetPromise && qText && choicesContainer) {
         MathJax.typesetPromise([qText, choicesContainer]).catch(err => console.log(err));
     }
 }
 
 // Aha Logic
 function triggerAhaMask() {
+    if (!ahaMaskContainer) return;
+
     ahaMaskContainer.classList.remove('hidden');
-    // Random corner
     let corners = [
         {top: '20px', left: '20px', right: 'auto', bottom: 'auto'},
         {top: '20px', right: '20px', left: 'auto', bottom: 'auto'},
@@ -866,7 +892,6 @@ function triggerAhaMask() {
     ahaMaskContainer.style.right = pos.right;
     ahaMaskContainer.style.bottom = pos.bottom;
     
-    // Set initial scale and gradually increase it every 30 seconds
     ahaScale = 1;
     ahaMaskContainer.style.transform = `scale(${ahaScale})`;
     
@@ -875,37 +900,40 @@ function triggerAhaMask() {
         ahaMaskContainer.style.transform = `scale(${ahaScale})`;
     }, 30000);
 
-    // If not clicked in 5 seconds, show exclamation
     ahaMaskTimer = setTimeout(() => {
-        ahaExclamation.classList.remove('hidden');
+        if (ahaExclamation) ahaExclamation.classList.remove('hidden');
     }, 5000);
 }
 
-ahaMaskContainer.addEventListener('click', () => {
-    if (ahaEventTriggered) return;
-    ahaEventTriggered = true;
-    clearTimeout(ahaMaskTimer);
-    clearInterval(ahaGrowthInterval);
-    
-    ahaMaskContainer.classList.add('hidden');
-    ahaExclamation.classList.add('hidden');
-    scanlineOverlay.classList.remove('hidden');
-    
-    forcePause(audioAura);
-    forcePlay(audioStatic, 0.4);
-    
-    // Blackout
-    screens.question.classList.add('hidden');
-    screens.question.classList.remove('active');
-    
-    setTimeout(() => {
-        runAhaTerminal();
-    }, 2000);
-});
+if (ahaMaskContainer) {
+    ahaMaskContainer.addEventListener('click', () => {
+        if (ahaEventTriggered) return;
+        ahaEventTriggered = true;
+        clearTimeout(ahaMaskTimer);
+        clearInterval(ahaGrowthInterval);
+        
+        ahaMaskContainer.classList.add('hidden');
+        if (ahaExclamation) ahaExclamation.classList.add('hidden');
+        if (scanlineOverlay) scanlineOverlay.classList.remove('hidden');
+        
+        forcePause(audioAura);
+        forcePlay(audioStatic, 0.4);
+        
+        if (screens.question) {
+            screens.question.classList.add('hidden');
+            screens.question.classList.remove('active');
+        }
+        
+        setTimeout(() => {
+            runAhaTerminal();
+        }, 2000);
+    });
+}
 
 async function runAhaTerminal() {
-    ahaHackScreen.classList.remove('hidden');
+    if (!ahaHackScreen || !ahaTerminal) return;
     
+    ahaHackScreen.classList.remove('hidden');
     let pathData = determinePath();
     let dynamicDialog = getAhaDialog(pathData.name);
     
@@ -949,7 +977,6 @@ async function runAhaTerminal() {
         let isDots = lines[i] === " ... ";
         let speed = isDots ? 300 : (isDialog ? 60 : 20); 
         
-        // If it has HTML tags, we inject it all at once to avoid breaking tags
         if (lines[i].includes('<span')) {
             div.innerHTML = lines[i];
             await new Promise(r => setTimeout(r, 150));
@@ -960,108 +987,56 @@ async function runAhaTerminal() {
             }
         }
         
-        // Auto scroll to bottom
         ahaHackScreen.scrollTop = ahaHackScreen.scrollHeight;
-        
         if (isDialog && !isDots) await new Promise(r => setTimeout(r, 600)); 
     }
     
-    ahaInputContainer.classList.remove('hidden');
-    ahaInput.focus();
+    if (ahaInputContainer) ahaInputContainer.classList.remove('hidden');
+    if (ahaInput) ahaInput.focus();
 }
 
 function getAhaDialog(pathName) {
     let dialogs = {
-        "Trickery": [
-            "Ah, taking shortcuts again?", "I saw you peeking.", "You think the rules don't apply to you.", 
-            "Well, you're absolutely right.", "Why play fair when cheating is so much funnier?", "But let's be honest with ourselves...",
-            "Did you really think I wouldn't notice?", "The IPC might overlook your little alt-tabs.", "But I see everything.", 
-            "Every keystroke, every hesitation.", "It's all part of the performance.", "And what a delightful performance it is!"
-        ],
-        "Strife": [
-            "Struggling, are we?", "Banging your head against a wall of formulas.", "Don't worry, the heat will break you down eventually.",
-            "Or maybe it will just temper your resolve.", "Either way, the struggle is highly entertaining.", "Is it the math that frightens you?",
-            "Or the realization that you might not be enough?", "It's okay to admit defeat, you know.", "Just give in to the entropy.",
-            "Let the chaos take over your mind.", "It's so much warmer down here in the dark.", "Won't you join me in the beautiful mess?"
-        ],
-        "Passage": [
-            "Round and round we go.", "Repeating the same cycle.", "Hoping for a different outcome?", 
-            "That's the definition of insanity.", "But maybe this time... you'll actually learn something.", "I've watched you walk this path before.",
-            "Your footprints are all over the answers.", "Yet you still manage to trip on the same questions.", "It's truly fascinating to observe.", 
-            "Like a rat in a thermodynamic maze.", "Keep running, little Trailblazer.", "The exit is just an illusion anyway."
-        ],
-        "Time": [
-            "Tick tock. Tick tock.", "You certainly like to take your sweet time.", "Every joule calculated to perfection.", 
-            "Or are you just paralyzed by indecision?", "Entropy waits for no one, Trailblazer.", "While you ponder the specific heat of water...", 
-            "Entire galaxies are burning out.", "Do you think the universe cares about your pace?", "I certainly don't.", 
-            "But I do enjoy watching you squirm.", "The clock is always ticking.", "And time is running out."
-        ],
-        "Law": [
-            "So disciplined.", "Following the rules to the letter.", "Never straying from the path.", 
-            "How utterly, tragically boring.", "Let's spice things up a bit, shall we?", "What's the point of a rule if you don't break it?", 
-            "Order is just chaos wearing a suit.", "You calculate your energy exchanges so perfectly.", "But you forget the most important variable.", 
-            "The absolute unpredictability of fun!", "Let me throw a wrench in your perfect system.", "Let's see how you handle a real anomaly."
-        ],
-        "Reason": [
-            "Flawless.", "A perfect streak of logic.", "You see the universe as an equation.", 
-            "But equations can't predict a joke.", "Let's test that flawless engine of yours.", "You think you have it all figured out.",
-            "Every variable accounted for.", "Every coefficient perfectly balanced.", "But what if I just... divide by zero?", 
-            "Will your reason shatter into a million pieces?", "I can't wait to see the look on your face.", "When the logic finally fails you."
-        ],
-        "Sky": [
-            "So fast.", "Burning through questions like a falling star.", "You trust your instincts above all else.", 
-            "But what happens when your instincts are wrong?", "We're about to find out.", "Speed is a double-edged sword.",
-            "It cuts through the nonsense...", "But it also blinds you to the details.", "Did you read that last question carefully?",
-            "Or did you just assume you knew the answer?", "The higher you fly, the harder you fall.", "And I've brought a very large net."
-        ],
-        "Death": [
-            "Oh dear.", "The numbers just aren't adding up for you, are they?", "Failing, freezing, fading away.", 
-            "Don't worry. This isn't the end.", "It's just the punchline.", "Absolute zero is quite cold, isn't it?", 
-            "Your score is plummeting into the abyss.", "But failure is just another form of data!", "And I am thoroughly enjoying your data.", 
-            "Let's see how low you can really go.", "Rock bottom has a basement, you know.", "And I've got the key right here."
-        ],
-        "Worldbearing": [
-            "Patient and steady.", "Carrying the weight of all these numbers.", "You're doing quite well, actually.", 
-            "But where's the chaos? Where's the thrill?", "Let me help you with that.", "You're like a giant heat sink.", 
-            "Absorbing all the pressure without a sweat.", "But even the biggest oceans eventually boil.", "If you apply enough heat, that is.", 
-            "And I've brought a supernova just for you.", "Let's see if you can bear this world.", "When it all starts to burn!"
-        ],
-        "Earth": [
-            "Grounded. Reliable.", "A solid foundation.", "But foundations crack when the ground shakes.", 
-            "And I am an absolute earthquake.", "Let's see if you can hold on.", "You're so deeply rooted in the basics.", 
-            "But the basics are just the beginning.", "I'm going to turn your world upside down.", "Let's see how reliable you are in a vacuum!", 
-            "No gravity, no rules, just pure Elation.", "Will you crumble to dust?", "Or will you laugh with me?"
-        ],
-        "Ocean": [
-            "Wavering.", "Floating on the surface.", "You know some things, but not enough.", 
-            "The depths of physics are vast.", "Let's pull you under.", "You ride the waves of these questions.", 
-            "Sometimes up, sometimes down.", "But you never really dive into the deep end.", "Are you afraid of the pressure?", 
-            "Or just too lazy to hold your breath?", "Let me tie an anchor to your ankle.", "We're going for a swim in the abyss!"
-        ],
-        "Romance": [
-            "Ah, the passionate learner.", "You see beauty in the math.", "A delicate dance of energy.", 
-            "But every dance needs a wildcard.", "May I have this dance?", "You treat thermodynamics like poetry.", 
-            "Finding metaphors in melting ice.", "It's almost sickeningly sweet.", "But romance always ends in tragedy, doesn't it?", 
-            "Let me add a little heartbreak to your equations.", "A sudden drop in temperature.", "A perfectly calculated betrayal."
-        ]
+        "Trickery": ["Ah, taking shortcuts again?", "I saw you peeking.", "You think the rules don't apply to you.", "Well, you're absolutely right.", "Why play fair when cheating is so much funnier?", "But let's be honest with ourselves...", "Did you really think I wouldn't notice?", "The IPC might overlook your little alt-tabs.", "But I see everything.", "Every keystroke, every hesitation.", "It's all part of the performance.", "And what a delightful performance it is!"],
+        "Strife": ["Struggling, are we?", "Banging your head against a wall of formulas.", "Don't worry, the heat will break you down eventually.", "Or maybe it will just temper your resolve.", "Either way, the struggle is highly entertaining.", "Is it the math that frightens you?", "Or the realization that you might not be enough?", "It's okay to admit defeat, you know.", "Just give in to the entropy.", "Let the chaos take over your mind.", "It's so much warmer down here in the dark.", "Won't you join me in the beautiful mess?"],
+        "Passage": ["Round and round we go.", "Repeating the same cycle.", "Hoping for a different outcome?", "That's the definition of insanity.", "But maybe this time... you'll actually learn something.", "I've watched you walk this path before.", "Your footprints are all over the answers.", "Yet you still manage to trip on the same questions.", "It's truly fascinating to observe.", "Like a rat in a thermodynamic maze.", "Keep running, little Trailblazer.", "The exit is just an illusion anyway."],
+        "Time": ["Tick tock. Tick tock.", "You certainly like to take your sweet time.", "Every joule calculated to perfection.", "Or are you just paralyzed by indecision?", "Entropy waits for no one, Trailblazer.", "While you ponder the specific heat of water...", "Entire galaxies are burning out.", "Do you think the universe cares about your pace?", "I certainly don't.", "But I do enjoy watching you squirm.", "The clock is always ticking.", "And time is running out."],
+        "Law": ["So disciplined.", "Following the rules to the letter.", "Never straying from the path.", "How utterly, tragically boring.", "Let's spice things up a bit, shall we?", "What's the point of a rule if you don't break it?", "Order is just chaos wearing a suit.", "You calculate your energy exchanges so perfectly.", "But you forget the most important variable.", "The absolute unpredictability of fun!", "Let me throw a wrench in your perfect system.", "Let's see how you handle a real anomaly."],
+        "Reason": ["Flawless.", "A perfect streak of logic.", "You see the universe as an equation.", "But equations can't predict a joke.", "Let's test that flawless engine of yours.", "You think you have it all figured out.", "Every variable accounted for.", "Every coefficient perfectly balanced.", "But what if I just... divide by zero?", "Will your reason shatter into a million pieces?", "I can't wait to see the look on your face.", "When the logic finally fails you."],
+        "Sky": ["So fast.", "Burning through questions like a falling star.", "You trust your instincts above all else.", "But what happens when your instincts are wrong?", "We're about to find out.", "Speed is a double-edged sword.", "It cuts through the nonsense...", "But it also blinds you to the details.", "Did you read that last question carefully?", "Or did you just assume you knew the answer?", "The higher you fly, the harder you fall.", "And I've brought a very large net."],
+        "Death": ["Oh dear.", "The numbers just aren't adding up for you, are they?", "Failing, freezing, fading away.", "Don't worry. This isn't the end.", "It's just the punchline.", "Absolute zero is quite cold, isn't it?", "Your score is plummeting into the abyss.", "But failure is just another form of data!", "And I am thoroughly enjoying your data.", "Let's see how low you can really go.", "Rock bottom has a basement, you know.", "And I've got the key right here."],
+        "Worldbearing": ["Patient and steady.", "Carrying the weight of all these numbers.", "You're doing quite well, actually.", "But where's the chaos? Where's the thrill?", "Let me help you with that.", "You're like a giant heat sink.", "Absorbing all the pressure without a sweat.", "But even the biggest oceans eventually boil.", "If you apply enough heat, that is.", "And I've brought a supernova just for you.", "Let's see if you can bear this world.", "When it all starts to burn!"],
+        "Earth": ["Grounded. Reliable.", "A solid foundation.", "But foundations crack when the ground shakes.", "And I am an absolute earthquake.", "Let's see if you can hold on.", "You're so deeply rooted in the basics.", "But the basics are just the beginning.", "I'm going to turn your world upside down.", "Let's see how reliable you are in a vacuum!", "No gravity, no rules, just pure Elation.", "Will you crumble to dust?", "Or will you laugh with me?"],
+        "Ocean": ["Wavering.", "Floating on the surface.", "You know some things, but not enough.", "The depths of physics are vast.", "Let's pull you under.", "You ride the waves of these questions.", "Sometimes up, sometimes down.", "But you never really dive into the deep end.", "Are you afraid of the pressure?", "Or just too lazy to hold your breath?", "Let me tie an anchor to your ankle.", "We're going for a swim in the abyss!"],
+        "Romance": ["Ah, the passionate learner.", "You see beauty in the math.", "A delicate dance of energy.", "But every dance needs a wildcard.", "May I have this dance?", "You treat thermodynamics like poetry.", "Finding metaphors in melting ice.", "It's almost sickeningly sweet.", "But romance always ends in tragedy, doesn't it?", "Let me add a little heartbreak to your equations.", "A sudden drop in temperature.", "A perfectly calculated betrayal."]
     };
     return dialogs[pathName] || dialogs["Romance"];
 }
 
 let ahaTimeout = null;
-ahaInput.addEventListener('input', async (e) => {
-    let val = ahaInput.value.toUpperCase();
+let ahaResolved = false;
+
+function handleAhaInput(val) {
+    if (ahaResolved || !ahaHackScreen) return;
+    
+    val = val.toUpperCase();
     if (val === 'Y' || val === 'N') {
-        ahaInput.disabled = true;
+        ahaResolved = true;
+        
+        if (ahaInput) {
+            ahaInput.disabled = true;
+            ahaInput.value = val;
+        }
+        
         clearTimeout(ahaTimeout);
         
         ahaTimeout = setTimeout(async () => {
-            ahaTerminal.innerHTML = "";
-            ahaInputContainer.classList.add('hidden');
+            if (ahaTerminal) ahaTerminal.innerHTML = "";
+            if (ahaInputContainer) ahaInputContainer.classList.add('hidden');
             
             let finalDiv = document.createElement('div');
             finalDiv.className = 'aha-line';
-            ahaTerminal.appendChild(finalDiv);
+            if (ahaTerminal) ahaTerminal.appendChild(finalDiv);
             
             if (val === 'N') {
                 let text = "Well jokes on you. The Elation has been writing this script all along.";
@@ -1075,7 +1050,6 @@ ahaInput.addEventListener('input', async (e) => {
                 let hahaInterval = setInterval(() => {
                     finalDiv.innerHTML += "HA";
                     ahaHackScreen.scrollTop = ahaHackScreen.scrollHeight;
-                    // Extended typing to exactly 7 seconds
                     if (Date.now() - startTimer > 7000) {
                         clearInterval(hahaInterval);
                         resumeFromAha();
@@ -1083,23 +1057,44 @@ ahaInput.addEventListener('input', async (e) => {
                 }, 60);
             }
         }, 3000);
-    } else {
+    } else if (ahaInput) {
         ahaInput.value = '';
+    }
+}
+
+// 1. Attach to text input if it exists
+if (ahaInput) {
+    ahaInput.addEventListener('input', () => {
+        handleAhaInput(ahaInput.value);
+    });
+}
+
+// 2. Global fallback so it works even if the input element is deleted from HTML
+window.addEventListener('keydown', (e) => {
+    if (ahaHackScreen && !ahaHackScreen.classList.contains('hidden') && !ahaResolved) {
+        if (e.key.length === 1) { 
+            handleAhaInput(e.key);
+        }
     }
 });
 
 function resumeFromAha() {
-    ahaHackScreen.classList.add('hidden');
+    if (ahaHackScreen) ahaHackScreen.classList.add('hidden');
     forcePause(audioStatic);
-    // Restore quiz state
+    
     if (!isMuted) forcePlay(audioAura, 0.05);
-    screens.question.classList.remove('hidden');
-    void screens.question.offsetWidth;
-    screens.question.classList.add('active');
+    
+    if (screens.question) {
+        screens.question.classList.remove('hidden');
+        void screens.question.offsetWidth;
+        screens.question.classList.add('active');
+    }
 }
 
 async function selectAnswer(selectedIndex, btnElement) {
     let currentQ = quizQuestions[currentQIndex];
+    if (!choicesContainer) return;
+    
     let allBtns = choicesContainer.querySelectorAll('.choice-btn');
     
     allBtns.forEach((b, idx) => {
@@ -1131,38 +1126,48 @@ async function selectAnswer(selectedIndex, btnElement) {
         }
     }
     
-    feedbackText.innerHTML = currentQ.feedback;
+    if (feedbackText) feedbackText.innerHTML = currentQ.feedback;
     
-    feedbackContainer.classList.remove('hidden');
-    feedbackContainer.classList.add('animate-up');
-    nextBtn.classList.remove('hidden');
-    nextBtn.classList.add('animate-up');
+    if (feedbackContainer) {
+        feedbackContainer.classList.remove('hidden');
+        feedbackContainer.classList.add('animate-up');
+    }
     
-    if (window.MathJax && MathJax.typesetPromise) {
+    if (nextBtn) {
+        nextBtn.classList.remove('hidden');
+        nextBtn.classList.add('animate-up');
+    }
+    
+    if (window.MathJax && MathJax.typesetPromise && feedbackText) {
         MathJax.typesetPromise([feedbackText]).catch(err => console.log(err));
     }
 }
 
-nextBtn.addEventListener('click', () => {
-    // Soft red glitch effect with 5% probability on the book container, without shaking
-    if (Math.random() < 0.05) {
-        bookContainer.classList.add('glitch-effect');
-        setTimeout(() => bookContainer.classList.remove('glitch-effect'), 500);
-    }
+if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+        if (Math.random() < 0.05 && bookContainer) {
+            bookContainer.classList.add('glitch-effect');
+            setTimeout(() => bookContainer.classList.remove('glitch-effect'), 500);
+        }
 
-    currentQIndex++;
-    if (currentQIndex < quizQuestions.length) {
-        bookContainer.style.opacity = 0;
-        bookContainer.style.transform = 'translateY(20px)';
-        setTimeout(() => {
-            loadQuestion();
-            bookContainer.style.opacity = 1;
-            bookContainer.style.transform = 'translateY(0)';
-        }, 500);
-    } else {
-        endQuiz();
-    }
-});
+        currentQIndex++;
+        if (currentQIndex < quizQuestions.length) {
+            if (bookContainer) {
+                bookContainer.style.opacity = 0;
+                bookContainer.style.transform = 'translateY(20px)';
+            }
+            setTimeout(() => {
+                loadQuestion();
+                if (bookContainer) {
+                    bookContainer.style.opacity = 1;
+                    bookContainer.style.transform = 'translateY(0)';
+                }
+            }, 500);
+        } else {
+            endQuiz();
+        }
+    });
+}
 
 function endQuiz() {
     inQuiz = false;
@@ -1178,16 +1183,22 @@ function endQuiz() {
 }
 
 function renderScoreScreen(pathData) {
-    document.getElementById('score-student-name').style.display = 'block';
-    document.getElementById('score-display').style.display = 'block';
-    document.getElementById('score-title-text').style.display = 'block';
+    let sNameEl = document.getElementById('score-student-name');
+    let sDispEl = document.getElementById('score-display');
+    let sTitleEl = document.getElementById('score-title-text');
+    let pNameEl = document.getElementById('path-name');
+    let flavEl = document.getElementById('flavor-text');
+    let logoEl = document.getElementById('path-logo');
+
+    if (sNameEl) { sNameEl.style.display = 'block'; sNameEl.innerText = `${studentName}'s`; }
+    if (sDispEl) { sDispEl.style.display = 'block'; sDispEl.innerText = `${score} / ${quizQuestions.length}`; }
+    if (sTitleEl) sTitleEl.style.display = 'block';
+    
     document.querySelectorAll('.attempts-badge').forEach(b => b.style.display = 'block');
 
-    document.getElementById('score-student-name').innerText = `${studentName}'s`;
-    document.getElementById('path-name').innerText = pathData.name;
-    document.getElementById('score-display').innerText = `${score} / ${quizQuestions.length}`;
-    document.getElementById('flavor-text').innerText = pathData.flavor;
-    document.getElementById('path-logo').src = `pathimage/${pathData.logo}.webp`;
+    if (pNameEl) pNameEl.innerText = pathData.name;
+    if (flavEl) flavEl.innerText = pathData.flavor;
+    if (logoEl) logoEl.src = `pathimage/${pathData.logo}.webp`;
 }
 
 function determinePath() {
@@ -1195,27 +1206,32 @@ function determinePath() {
     let totalTimeSec = Math.floor((endTime - startTime) / 1000);
     let currentPaths = getPaths(attempts);
     
-    if (altTabs > 2 || mouseLeaves > 4) return currentPaths[0]; // Trickery
-    if ((altTabs > 0 || mouseLeaves > 2) && percent < 0.5) return currentPaths[1]; // Strife
-    if (attempts > 2) return currentPaths[2]; // Passage
-    if (totalTimeSec > 1500) return currentPaths[3]; // Time
-    if (altTabs === 0 && mouseLeaves === 0 && attempts === 1 && percent >= 0.7) return currentPaths[4]; // Law
-    if (percent === 1.0) return currentPaths[5]; // Reason
-    if (totalTimeSec < 300 && percent > 0.8) return currentPaths[6]; // Sky
-    if (percent < 0.4) return currentPaths[7]; // Death
-    if (percent >= 0.8) return currentPaths[8]; // Worldbearing
-    if (percent >= 0.6) return currentPaths[9]; // Earth
-    if (percent >= 0.4) return currentPaths[10]; // Ocean
-    return currentPaths[11]; // Romance
+    if (altTabs > 2 || mouseLeaves > 4) return currentPaths[0]; 
+    if ((altTabs > 0 || mouseLeaves > 2) && percent < 0.5) return currentPaths[1]; 
+    if (attempts > 2) return currentPaths[2]; 
+    if (totalTimeSec > 1500) return currentPaths[3]; 
+    if (altTabs === 0 && mouseLeaves === 0 && attempts === 1 && percent >= 0.7) return currentPaths[4]; 
+    if (percent === 1.0) return currentPaths[5]; 
+    if (totalTimeSec < 300 && percent > 0.8) return currentPaths[6]; 
+    if (percent < 0.4) return currentPaths[7]; 
+    if (percent >= 0.8) return currentPaths[8]; 
+    if (percent >= 0.6) return currentPaths[9]; 
+    if (percent >= 0.4) return currentPaths[10]; 
+    return currentPaths[11]; 
 }
 
-document.getElementById('restart-btn').addEventListener('click', () => {
-    isDebugMode = false;
-    ahaEventTriggered = false;
-    document.getElementById('debug-controls').classList.add('hidden');
-    switchScreen(screens.score, screens.main);
-    
-    updateAttemptDisplays(attempts + 1);
-    
-    forcePlay(audioIntro, 0.25, 51);
-});
+const restartBtn = document.getElementById('restart-btn');
+if (restartBtn) {
+    restartBtn.addEventListener('click', () => {
+        isDebugMode = false;
+        ahaEventTriggered = false;
+        
+        let debugControls = document.getElementById('debug-controls');
+        if (debugControls) debugControls.classList.add('hidden');
+        
+        switchScreen(screens.score, screens.main);
+        updateAttemptDisplays(attempts + 1);
+        
+        forcePlay(audioIntro, 0.25, 51);
+    });
+}
