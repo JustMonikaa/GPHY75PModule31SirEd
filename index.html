@@ -46,6 +46,7 @@
     <!-- Audio Elements (Force unmuted autoplay) -->
     <audio id="audio-intro" src="intro.mp3" loop preload="auto" autoplay></audio>
     <audio id="audio-aura" src="aura.mp3" loop preload="auto"></audio>
+    <audio id="audio-static" src="static.mp3" loop preload="auto"></audio>
 
     <!-- AHA EVENT ELEMENTS -->
     <div id="aha-mask-container" class="hidden">
@@ -58,7 +59,7 @@
         <div id="aha-terminal"></div>
         <div id="aha-input-container" class="hidden">
             <span class="prompt">Do you believe Aha was here? [Y/N] </span>
-            <input type="text" id="aha-input" maxlength="1" autocomplete="off" autofocus>
+            <span id="aha-input-display" class="aha-green"></span>
         </div>
     </div>
 
