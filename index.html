@@ -29,9 +29,7 @@
     <!-- Persistent Top Controls -->
     <div class="top-controls">
         <button id="fullscreen-btn" class="audio-control">
-            <!-- Fullscreen Icon -->
             <svg id="icon-fs-enter" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M3 5.25a2.25 2.25 0 0 1 2.25-2.25h4.5a.75.75 0 0 1 0 1.5H5.25a.75.75 0 0 0-.75.75v4.5a.75.75 0 0 1-1.5 0v-4.5Zm18 0a2.25 2.25 0 0 0-2.25-2.25h-4.5a.75.75 0 0 0 0 1.5h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 0 1.5 0v-4.5Zm-18 13.5a2.25 2.25 0 0 0 2.25 2.25h4.5a.75.75 0 0 0 0-1.5H5.25a.75.75 0 0 1-.75-.75v-4.5a.75.75 0 0 0-1.5 0v4.5Zm18 0a2.25 2.25 0 0 1-2.25 2.25h-4.5a.75.75 0 0 1 0-1.5h4.5a.75.75 0 0 0 .75-.75v-4.5a.75.75 0 0 1 1.5 0v4.5Z" clip-rule="evenodd" /></svg>
-            <!-- Exit Fullscreen Icon -->
             <svg id="icon-fs-exit" class="hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M8.25 3a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-.75.75H4.5a.75.75 0 0 1 0-1.5h3v-3a.75.75 0 0 1 .75-.75Zm7.5 0a.75.75 0 0 1 .75.75v3h3a.75.75 0 0 1 0 1.5h-3.75a.75.75 0 0 1-.75-.75V3.75A.75.75 0 0 1 15.75 3ZM8.25 15.75a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0v-3h-3a.75.75 0 0 1 0-1.5h3.75Zm7.5 0a.75.75 0 0 1 .75.75h3.75a.75.75 0 0 1 0 1.5h-3v3a.75.75 0 0 1-1.5 0v-3.75A.75.75 0 0 1 15.75 15.75Z" clip-rule="evenodd" /></svg>
         </button>
 
@@ -41,18 +39,16 @@
         </button>
     </div>
 
-    <!-- 
-      Autoplay policy hack: We attempt autoplay. If blocked by browser, we mute it and play it.
-      Once user interacts, we unmute it.
-    -->
-    <audio id="audio-intro" src="intro.mp3" loop preload="auto" autoplay muted></audio>
+    <!-- Audio Elements (Force unmuted autoplay) -->
+    <audio id="audio-intro" src="intro.mp3" loop preload="auto" autoplay></audio>
     <audio id="audio-aura" src="aura.mp3" loop preload="auto"></audio>
 
     <!-- MAIN SCREEN -->
     <div id="main-screen" class="screen active">
         <div class="book-cover">
+            <div class="attempts-badge">Attempt: <span class="attempt-display">0</span></div>
             <h1 class="glow-text">Flame-Chaser's Path:<br>Thermodynamics</h1>
-            <p class="subtitle" id="audio-hint">Click anywhere to immerse</p>
+            <p class="subtitle" id="audio-hint">If no music plays, click anywhere to unleash audio</p>
             <button id="start-btn" class="hsr-btn">Begin Trial</button>
         </div>
     </div>
@@ -69,6 +65,7 @@
     <!-- QUESTION SCREEN -->
     <div id="question-screen" class="screen hidden">
         <div class="book-container">
+            <div class="attempts-badge">Attempt: <span class="attempt-display">0</span></div>
             <!-- Left Page -->
             <div class="page left-page">
                 <div class="question-header">
@@ -78,7 +75,6 @@
                     <!-- Question goes here -->
                 </div>
                 
-                <!-- Moved Explanation Box to the Left Page (bottom aligned) -->
                 <div id="feedback-container" class="hidden">
                     <h3>Explanation:</h3>
                     <div id="feedback-text-wrapper">
@@ -103,6 +99,7 @@
     <!-- SCORE SCREEN -->
     <div id="score-screen" class="screen hidden">
         <div class="score-card">
+            <div class="attempts-badge">Attempt: <span class="attempt-display">0</span></div>
             <h2 id="score-student-name">Traveler's</h2>
             <h2>Flame-Chaser Path is</h2>
             <h1 id="path-name" class="glow-text path-glow">Path Name</h1>
