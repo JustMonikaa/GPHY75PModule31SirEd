@@ -26,6 +26,9 @@
     <div id="ambient-nebula-2" class="nebula"></div>
     <div id="ambient-nebula-3" class="nebula"></div>
     <div id="glitter-container"></div>
+    
+    <!-- TV Scanline Overlay (Hidden by default, triggered randomly) -->
+    <div id="scanline-overlay" class="hidden"></div>
 
     <!-- Persistent Top Controls -->
     <div class="top-controls">
@@ -44,12 +47,26 @@
     <audio id="audio-intro" src="intro.mp3" loop preload="auto" autoplay></audio>
     <audio id="audio-aura" src="aura.mp3" loop preload="auto"></audio>
 
+    <!-- AHA EVENT ELEMENTS -->
+    <div id="aha-mask-container" class="hidden">
+        <img id="aha-mask" src="aha.png" alt="Aha Mask">
+        <div id="aha-exclamation" class="hidden">!</div>
+    </div>
+    
+    <!-- AHA HACK SCREEN -->
+    <div id="aha-hack-screen" class="hidden">
+        <div id="aha-terminal"></div>
+        <div id="aha-input-container" class="hidden">
+            <span class="prompt">Do you believe Aha was here? [Y/N] </span>
+            <input type="text" id="aha-input" maxlength="1" autocomplete="off" autofocus>
+        </div>
+    </div>
+
     <!-- MAIN SCREEN -->
     <div id="main-screen" class="screen active">
         <div class="book-cover">
             <div class="attempts-badge">Cycle: <span class="attempt-display">0</span></div>
             <h1 class="glow-text">Flame-Chaser's Path:<br>Thermodynamics</h1>
-            <p class="subtitle hidden" id="audio-hint"></p>
             <button id="start-btn" class="hsr-btn">Begin Trial</button>
         </div>
     </div>

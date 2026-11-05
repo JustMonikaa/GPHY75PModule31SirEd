@@ -14,6 +14,15 @@ const feedbackText = document.getElementById('feedback-text');
 const nextBtn = document.getElementById('next-btn');
 const bookContainer = document.querySelector('.book-container');
 const attemptDisplays = document.querySelectorAll('.attempt-display');
+const scanlineOverlay = document.getElementById('scanline-overlay');
+
+// Aha Event Elements
+const ahaMaskContainer = document.getElementById('aha-mask-container');
+const ahaExclamation = document.getElementById('aha-exclamation');
+const ahaHackScreen = document.getElementById('aha-hack-screen');
+const ahaTerminal = document.getElementById('aha-terminal');
+const ahaInputContainer = document.getElementById('aha-input-container');
+const ahaInput = document.getElementById('aha-input');
 
 // Audio & Controls Elements
 const audioIntro = document.getElementById('audio-intro');
@@ -39,25 +48,24 @@ let audioInitialized = false;
 let isDebugMode = false;
 let debugPathIndex = 0;
 
+let ahaEventTriggered = false;
+let ahaMaskTimer = null;
+let ahaTargetQIndex = -1;
+
 // Fetch attempts from local storage or set to 0. 
-// Do NOT increment here. Increment ONLY when starting a fresh quiz.
 let attempts = parseInt(localStorage.getItem('hsr_quiz_attempts') || '0');
 
-// Initial display setup
 function updateAttemptDisplays(val) {
     attemptDisplays.forEach(el => el.innerText = val);
 }
-// Show current attempts + 1, because the user is *about* to start their next attempt
 updateAttemptDisplays(attempts + 1);
 
-// Helper for dynamic flavor text ordinals
 function getOrdinal(n) {
     let s = ["th", "st", "nd", "rd"];
     let v = n % 100;
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-// Dynamic Path Definitions that absorb 'attempts'
 function getPaths(attemptCount) {
     let ord = getOrdinal(attemptCount);
     return [
@@ -113,7 +121,6 @@ document.addEventListener('fullscreenchange', () => {
 });
 
 // --- AUDIO SYSTEM ---
-// Simple clear wrapper around playing
 function forcePlay(audioEl, volume, startTime = null) {
     if (isMuted) return;
     if (startTime !== null) {
@@ -125,25 +132,20 @@ function forcePlay(audioEl, volume, startTime = null) {
         promise.catch(e => console.log("Audio autoplay prevented by browser."));
     }
 }
-
-// Simple wrapper around pausing
 function forcePause(audioEl) {
     audioEl.pause();
 }
 
-// Ensure the page attempts to play immediately
 window.addEventListener('DOMContentLoaded', () => {
     forcePlay(audioIntro, 0.25, 51);
 });
 
-// Catch interaction to force audio if it was blocked
 document.body.addEventListener('click', () => {
-    if (!isMuted && audioIntro.paused) {
+    if (!isMuted && audioIntro.paused && !inQuiz && !isDebugMode && !ahaEventTriggered) {
         forcePlay(audioIntro, 0.25, 51);
     }
 }, { once: true });
 
-// Persistent Mute/Unmute Toggle
 muteBtn.addEventListener('click', (e) => {
     e.stopPropagation(); 
     isMuted = !isMuted;
@@ -155,9 +157,9 @@ muteBtn.addEventListener('click', (e) => {
     } else {
         iconMuted.classList.add('hidden');
         iconUnmuted.classList.remove('hidden');
-        if (inQuiz) {
+        if (inQuiz && !ahaEventTriggered) {
             forcePlay(audioAura, 0.05);
-        } else {
+        } else if (!ahaEventTriggered) {
             forcePlay(audioIntro, 0.25);
         }
     }
@@ -173,12 +175,10 @@ window.addEventListener('keydown', (e) => {
     if (key === 'shift') keyState.shift = true;
     if (key === 'm') keyState.m = true;
 
-    // Trigger debug mode
     if (keyState.ctrl && keyState.alt && keyState.shift && keyState.m) {
-        if (!isDebugMode) activateDebugMode();
+        if (!isDebugMode && !ahaEventTriggered) activateDebugMode();
     }
 
-    // Navigation inside debug mode
     if (isDebugMode) {
         if (e.key === 'ArrowLeft') {
             cycleDebugPath(-1);
@@ -201,24 +201,20 @@ function activateDebugMode() {
     inQuiz = false;
     document.getElementById('debug-controls').classList.remove('hidden');
     
-    // Stop all other screens, immediately show score screen
     screens.main.classList.remove('active');
     screens.main.classList.add('hidden');
     screens.question.classList.remove('active');
     screens.question.classList.add('hidden');
     nameDialog.classList.add('hidden');
     
-    // Switch Audio
     forcePause(audioAura);
     forcePlay(audioIntro, 0.25, 118);
 
-    // Initial Path display (Clear name and score displays)
     studentName = "";
     document.getElementById('score-student-name').style.display = 'none';
     document.getElementById('score-display').style.display = 'none';
     document.querySelectorAll('.attempts-badge').forEach(b => b.style.display = 'none');
     
-    // In debug mode, attempts are ignored. We pass 1 just so the text renders normally.
     let currentPaths = getPaths(1); 
     renderScoreScreen(currentPaths[debugPathIndex]);
     
@@ -236,7 +232,294 @@ function cycleDebugPath(direction) {
 }
 
 
-// --- SCIENTIFIC NOTATION FORMATTER ---
+// --- CRYPTOGRAPHIC HASHING ---
+async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// --- CONCEPTUAL QUESTIONS (PRE-HASHED) ---
+const rawConceptual = [
+    {
+        "q": "Ashley has two freezers in her laboratory. Inside freezer A, the temperature is \\( 0 \\, ^\\circ\\text{F} \\) and inside freezer B the temperature is \\( 0 \\, ^\\circ\\text{C} \\). Which one of the following statements about these freezers is true?",
+        "options": [
+            "The inside of freezer A is colder than the inside of freezer B.",
+            "The inside of freezer B is colder than the inside of freezer A.",
+            "A and B are at the same temperature.",
+            "There's no way to compare the temperatures of these two freezers because the units are different."
+        ],
+        "feedback": "\\( 0 \\, ^\\circ\\text{F} \\) is equivalent to approximately \\( -17.8 \\, ^\\circ\\text{C} \\), making freezer A colder than freezer B (\\( 0 \\, ^\\circ\\text{C} \\)).",
+        "answerHash": "776039c0d948fd410bcb544064272b92c1092cad5af83f164737fb3e07172328"
+    },
+    {
+        "q": "Which one of the following temperatures is approximately equal to 'room temperature?'",
+        "options": [
+            "\\( 72 \\, ^\\circ\\text{C} \\)",
+            "\\( 50 \\, ^\\circ\\text{C} \\)",
+            "\\( 0 \\text{ K} \\)",
+            "\\( 110 \\text{ K} \\)",
+            "\\( 293 \\text{ K} \\)"
+        ],
+        "feedback": "Room temperature is typically considered to be around \\( 20 \\, ^\\circ\\text{C} \\), which is \\( 293 \\text{ K} \\) (\\( 20 + 273.15 \\)).",
+        "answerHash": "66eb16fc88851f22f7ba4d905fe09ec8e5a3495bb2720d30e4eb4101fc9d070d"
+    },
+    {
+        "q": "Complete the following statement: A temperature increase of \\( 75 \\text{ C}^\\circ \\) is equal to a temperature increase of",
+        "options": [
+            "\\( 167 \\text{ F}^\\circ = 75 \\text{ C} \\)",
+            "\\( 75 \\text{ K} \\)",
+            "\\( 75 \\text{ F}^\\circ \\)",
+            "\\( 348 \\text{ K} \\)",
+            "\\( 42 \\text{ F}^\\circ \\)"
+        ],
+        "feedback": "A change of 1 degree Celsius is exactly equivalent in magnitude to a change of 1 Kelvin. Thus, \\( \\Delta T_C = \\Delta T_K \\).",
+        "answerHash": "e436a5eefe4e38e01a649e24180f8028e26a97fa8483c949c03f30ac28917b43"
+    },
+    {
+        "q": "Complete the following statement: A temperature decrease of \\( 30 \\text{ C}^\\circ \\) is equal to a temperature decrease of",
+        "options": [
+            "\\( 30 \\text{ F}^\\circ \\)",
+            "\\( 30 \\text{ K} \\)",
+            "\\( 17 \\text{ F}^\\circ \\)",
+            "\\( 26 \\text{ F}^\\circ \\)",
+            "\\( 303 \\text{ K} \\)"
+        ],
+        "feedback": "Because the size of a Celsius degree and a Kelvin are identical, a decrease of \\( 30 \\text{ C}^\\circ \\) corresponds to a decrease of \\( 30 \\text{ K} \\).",
+        "answerHash": "b8e1254240007ffe5271a0658018a8fb62841b1fe6150153f730ee40d5e0afbd"
+    },
+    {
+        "q": "Absolute zero on the Kelvin temperature scale is \\( 0 \\text{ K} \\). What is absolute zero on the Celsius temperature scale?",
+        "options": [
+            "\\( -273.15 \\, ^\\circ\\text{C} \\)",
+            "\\( +273.15 \\, ^\\circ\\text{C} \\)",
+            "\\( -100.00 \\, ^\\circ\\text{C} \\)",
+            "\\( +100.00 \\, ^\\circ\\text{C} \\)",
+            "\\( -459.67 \\, ^\\circ\\text{C} \\)"
+        ],
+        "feedback": "\\( T_C = T_K - 273.15 \\). Therefore, \\( 0 \\text{ K} = -273.15 \\, ^\\circ\\text{C} \\).",
+        "answerHash": "6886b35e34fc2a30dd0058c9a6d1dac59af989e56cd3561d14d3daef82d6a4c5"
+    },
+    {
+        "q": "Three thermometers are in the same water bath. After thermal equilibrium is established, it is found that the Celsius thermometer reads \\( 0 \\, ^\\circ\\text{C} \\), the Fahrenheit thermometer reads \\( 32 \\, ^\\circ\\text{F} \\), and the Kelvin thermometer reads \\( 305 \\text{ K} \\). Which one of the following statements is the most reasonable conclusion?",
+        "options": [
+            "The Celsius thermometer is incorrect.",
+            "The Kelvin thermometer is incorrect.",
+            "The Fahrenheit thermometer is incorrect.",
+            "All three thermometers are incorrect.",
+            "The three thermometers are at different temperatures."
+        ],
+        "feedback": "\\( 0 \\, ^\\circ\\text{C} \\) equals \\( 32 \\, ^\\circ\\text{F} \\) and \\( 273.15 \\text{ K} \\). The reading of \\( 305 \\text{ K} \\) is clearly incorrect.",
+        "answerHash": "859e9db001ef483fe0ed2442206be09141eeb8eedbf0c52bc56c1286ced73b84"
+    },
+    {
+        "q": "What is unique about the Kelvin temperature scale?",
+        "options": [
+            "It is the most widely used temperature scale around the world.",
+            "It is divided into temperature units called degrees.",
+            "It is based on the fact that there is a lower limit to temperature called absolute zero.",
+            "It is named after a person.",
+            "It is a metric unit based on multiples of 10."
+        ],
+        "feedback": "The Kelvin scale is an absolute thermodynamic temperature scale that uses absolute zero as its null point.",
+        "answerHash": "371519ee067cce5fac9853ac21ef3131a6c8881b03acfd1e45220dec89f85781"
+    },
+    {
+        "q": "Which one of the following would not be used as a thermometric property in the construction of a thermometer?",
+        "options": [
+            "the change in length of a metal rod",
+            "the change in volume of a liquid",
+            "the change in pressure of a gas at constant volume",
+            "the change in mass of a solid",
+            "the change in electrical resistance of a wire"
+        ],
+        "feedback": "Mass is generally conserved regardless of temperature changes. It does not vary with temperature, making it useless as a thermometric property.",
+        "answerHash": "772211eaca66acb7b29e94e2ab4e6a58216df5e7fbbcf1d31fb4be60634a2c1a"
+    },
+    {
+        "q": "What type of thermometer involves welded junctions of two different metals?",
+        "options": [
+            "semi metallic strip",
+            "electrical resistance",
+            "infrared thermography",
+            "Josephson junction",
+            "thermocouple"
+        ],
+        "feedback": "A thermocouple consists of two dissimilar electrical conductors forming an electrical junction, which produces a temperature-dependent voltage.",
+        "answerHash": "500966047e5a5654112393288925652f38590c06f1d1cb2020e12686e1049a27"
+    },
+    {
+        "q": "Which one of the following thermometers can be useful in detecting breast cancer?",
+        "options": [
+            "infrared thermography",
+            "electrical resistance",
+            "bimetallic strip",
+            "thermocouple",
+            "sphygmomanometer"
+        ],
+        "feedback": "Infrared thermography maps heat distribution on the body's surface, which can sometimes highlight regions of increased blood flow associated with tumors.",
+        "answerHash": "b8b010b537f111b2b0b85b0451019d21df10b238442f624773e92118d371ce3c"
+    },
+    {
+        "q": "Complete the following statement: Bimetallic strips used as adjustable switches in electric appliances consist of metallic strips that must have different",
+        "options": [
+            "thermal expansion coefficients.",
+            "specific heat capacities.",
+            "lengths.",
+            "thicknesses.",
+            "mass."
+        ],
+        "feedback": "To bend when heated, the two metals in the bimetallic strip must expand at different rates, requiring different thermal expansion coefficients.",
+        "answerHash": "c1dc6dc99f001bc3c5f3ce669617a7d25f14d8951ab21a4359a9b4c17101789d"
+    },
+    {
+        "q": "A rod with an initial length \\( 3.000 \\text{ cm} \\) is heated so that its temperature increases by \\( 89 \\, ^\\circ\\text{C} \\). When the length is measured again, the length has increased by \\( 0.006 \\text{ cm} \\). This behavior is an example of which one of the following material properties?",
+        "options": [
+            "specific heat capacity",
+            "thermal stress",
+            "thermal expansion",
+            "calorimetry",
+            "thermal diffusion"
+        ],
+        "feedback": "The change in dimensions of a material in response to a change in temperature is known as thermal expansion.",
+        "answerHash": "01400f0739e6e28ca10528e2911c497720dcab2ab7fb85ccfb26416c9d17ca60"
+    },
+    {
+        "q": "A square plate made of lead has an oval-shaped hole. The oval may be described by the lengths \\( a \\) and \\( b \\). Which of the following correctly describes the plate after its temperature is increased by two hundred Celsius degrees?",
+        "options": [
+            "The size of the plate will increase, but a and b will both decrease.",
+            "The size of the plate will remain unchanged, but a and b will both increase.",
+            "The size of the plate will increase, and a and b will both increase.",
+            "The size of the plate will remain unchanged, but a and b will both decrease.",
+            "The size of the plate will increase, but only a will increase."
+        ],
+        "feedback": "When an object undergoes thermal expansion, every linear dimension increases, including the dimensions of any holes (acting as if they were made of the solid material).",
+        "answerHash": "9bbdd1363570bb963a8f580cd6f122e079f23d611da6b19d713ca4bdd36881b8"
+    },
+    {
+        "q": "A circular hole is drilled through a penny. Complete the following statement: When the penny is heated,",
+        "options": [
+            "the hole decreases in diameter.",
+            "the metal part of the penny expands outward, but the size of the hole does not change.",
+            "the area of the hole increases by the same amount as a similar area of the metal does.",
+            "linear expansion causes the shape of the hole to become slightly oval-shaped.",
+            "the area of the hole increases more than a similar area of the metal does"
+        ],
+        "feedback": "Holes expand in the exact same proportion as the surrounding solid material when heated uniformly.",
+        "answerHash": "308dad71a3dfef603b640e65bc42acd363c1b6011a3f24e5bafe00266034e1ef"
+    },
+    {
+        "q": "Complete the following statement: The term heat most accurately describes",
+        "options": [
+            "the flow of energy resulting from a temperature difference.",
+            "the molecular motion inside of an object.",
+            "the internal energy of an object.",
+            "a measure of how hot or cold an object is.",
+            "the absolute temperature of an object."
+        ],
+        "feedback": "In physics, heat is strictly defined as the transfer of thermal energy across a boundary due to a difference in temperature.",
+        "answerHash": "81acf03d83dd8913266044a787e4aee940aadeaab07bde15fd205c53fabf8b13"
+    },
+    {
+        "q": "Heat is expressed in the same units as which one of the following quantities?",
+        "options": [
+            "temperature",
+            "power",
+            "force/time",
+            "specific heat capacity",
+            "work"
+        ],
+        "feedback": "Both heat and work represent transfers of energy and are measured in Joules (J).",
+        "answerHash": "00e13ed7af55b27622f1d6eab5bec0147e68efe28dc2b12461117afa1a5ed40e"
+    },
+    {
+        "q": "Two balls, one made of copper and one made of gold, have the same mass and temperature. The same amount of heat is added to each sphere, but the final temperature of the two spheres is different. Which one of the following statements best explains the reason?",
+        "options": [
+            "The specific heat capacities of the two spheres are different.",
+            "The densities of the two spheres are different.",
+            "The volumes of the two spheres are different.",
+            "The coefficients of volume expansion of the two spheres are different.",
+            "The latent heats of vaporization of the two spheres are different."
+        ],
+        "feedback": "The relationship \\( Q = mc\\Delta T \\) shows that for the same \\( Q \\) and \\( m \\), a different \\( \\Delta T \\) means the materials must have different specific heat capacities (\\( c \\)).",
+        "answerHash": "eae049013f6db0cf798a28e08b9256c2fe63aac66d82530ec475309a62510a43"
+    },
+    {
+        "q": "During a certain thermal process a solid object's temperature changes as heat flows in. Which of the following quantities is not related to the amount of the temperature change?",
+        "options": [
+            "mass",
+            "the amount of heat added or removed",
+            "volume",
+            "the material of which the object is composed",
+            "the specific heat capacity"
+        ],
+        "feedback": "According to \\( Q = mc\\Delta T \\), volume is not directly related to the temperature change (though mass is derived from volume and density).",
+        "answerHash": "62d7a6b1211d627650e2bf0c869b69b564e2cd74290ae1dd78ae4b5e20b0cfe7"
+    },
+    {
+        "q": "Which one of the following statements is the definition of the specific heat capacity of an object?",
+        "options": [
+            "The specific heat capacity is the amount of energy per unit mass to raise the temperature of the object from its freezing point to its boiling point.",
+            "The specific heat capacity is the amount of energy per unit mass to raise the temperature of the object by \\( 1 \\, ^\\circ\\text{C} \\).",
+            "The specific heat capacity is the temperature of the object divided by its density.",
+            "Given one gram of the material, the specific heat capacity is the amount of energy to change the material from solid to liquid.",
+            "Given one gram of the material, the specific heat capacity is the amount of energy to change the material from a solid to a gas."
+        ],
+        "feedback": "Specific heat capacity \\( c \\) is formally defined as the heat \\( Q \\) required to raise the temperature of \\( 1 \\text{ kg} \\) of a substance by \\( 1 \\text{ K} \\) or \\( 1 \\, ^\\circ\\text{C} \\).",
+        "answerHash": "9f955fb70260b892fee48ff14dea5c8803b67ee76194cee2f80fff05efcc3d7c"
+    },
+    {
+        "q": "To what does the specific heat capacity of an object relate?",
+        "options": [
+            "the amount of energy required to change the temperature of an object",
+            "the total amount of energy an object can store",
+            "the thermal potential energy of the object",
+            "the amount of work done by the object",
+            "the amount of energy required to melt a solid object"
+        ],
+        "feedback": "Specific heat characterizes a material's resistance to temperature change when energy is added as heat.",
+        "answerHash": "fbda368ead5559e025b764588ec529e6c914634e7653f4d010d4635f6acadf0f"
+    },
+    {
+        "q": "At the steel factory, the hot liquid steel began to show signs of fusion. Which one of the following statements is another way of expressing what the steel did?",
+        "options": [
+            "The hot steel began to sublime as it cooled.",
+            "The hot steel began to vaporize as it was heated further.",
+            "The hot steel began to condense as it was cooled.",
+            "The hot steel began to freeze as it cooled.",
+            "The hot steel began to melt as it was heated further."
+        ],
+        "feedback": "In thermodynamics, 'fusion' refers to the phase transition from solid to liquid, which is commonly known as melting.",
+        "answerHash": "eed33f9316fa587d6a42a6cbfc60e828f9812282f66d14c44b5c818e6b950d38"
+    },
+    {
+        "q": "The fresh seafood was shipped in dry ice. By the time the package arrived at its destination, half of the dry ice had sublimed. Which one of the following statements is another way of expressing what the dry ice did?",
+        "options": [
+            "The dry ice had gone from a solid to a liquid state.",
+            "The dry ice had gone from a solid to a gaseous state.",
+            "The dry ice had condensed.",
+            "The dry ice had gone from a liquid into a gaseous state.",
+            "The dry ice had chemically reacted with the seafood and was absorbed by it."
+        ],
+        "feedback": "Sublimation is the direct phase transition from a solid to a gas, bypassing the liquid phase.",
+        "answerHash": "24208606e9f713f8930c43e00bc6cf491055e81144b93f503ca844290bfc8d63"
+    }
+];
+
+function shuffleConceptual(prob) {
+    let opts = [...prob.options];
+    opts.sort(() => Math.random() - 0.5);
+    return {
+        type: 'conceptual',
+        q: prob.q,
+        options: opts,
+        answerHash: prob.answerHash,
+        feedback: prob.feedback
+    };
+}
+
+// --- GENERATORS USING sci() STRICTLY AND UNITS ---
 function sci(val) {
     let str = Number(val).toExponential(2);
     if (str.includes('e')) {
@@ -249,223 +532,6 @@ function sci(val) {
     return str;
 }
 
-// --- CONCEPTUAL QUESTIONS ---
-const rawConceptual = [
-    {
-        q: "Ashley has two freezers in her laboratory. Inside freezer A, the temperature is \\( 0 \\, ^\\circ\\text{F} \\) and inside freezer B the temperature is \\( 0 \\, ^\\circ\\text{C} \\). Which one of the following statements about these freezers is true?",
-        options: [
-            "The inside of freezer A is colder than the inside of freezer B.",
-            "The inside of freezer B is colder than the inside of freezer A.",
-            "A and B are at the same temperature.",
-            "There's no way to compare the temperatures of these two freezers because the units are different."
-        ], answer: 0,
-        feedback: "\\( 0 \\, ^\\circ\\text{F} \\) is equivalent to approximately \\( -17.8 \\, ^\\circ\\text{C} \\), making freezer A colder than freezer B (\\( 0 \\, ^\\circ\\text{C} \\))."
-    },
-    {
-        q: "Which one of the following temperatures is approximately equal to 'room temperature?'",
-        options: ["\\( 72 \\, ^\\circ\\text{C} \\)", "\\( 50 \\, ^\\circ\\text{C} \\)", "\\( 0 \\text{ K} \\)", "\\( 110 \\text{ K} \\)", "\\( 293 \\text{ K} \\)"], answer: 4,
-        feedback: "Room temperature is typically considered to be around \\( 20 \\, ^\\circ\\text{C} \\), which is \\( 293 \\text{ K} \\) (\\( 20 + 273.15 \\))."
-    },
-    {
-        q: "Complete the following statement: A temperature increase of \\( 75 \\text{ C}^\\circ \\) is equal to a temperature increase of",
-        options: ["\\( 167 \\text{ F}^\\circ = 75 \\text{ C} \\)", "\\( 75 \\text{ K} \\)", "\\( 75 \\text{ F}^\\circ \\)", "\\( 348 \\text{ K} \\)", "\\( 42 \\text{ F}^\\circ \\)"], answer: 1,
-        feedback: "A change of 1 degree Celsius is exactly equivalent in magnitude to a change of 1 Kelvin. Thus, \\( \\Delta T_C = \\Delta T_K \\)."
-    },
-    {
-        q: "Complete the following statement: A temperature decrease of \\( 30 \\text{ C}^\\circ \\) is equal to a temperature decrease of",
-        options: ["\\( 30 \\text{ F}^\\circ \\)", "\\( 30 \\text{ K} \\)", "\\( 17 \\text{ F}^\\circ \\)", "\\( 26 \\text{ F}^\\circ \\)", "\\( 303 \\text{ K} \\)"], answer: 1,
-        feedback: "Because the size of a Celsius degree and a Kelvin are identical, a decrease of \\( 30 \\text{ C}^\\circ \\) corresponds to a decrease of \\( 30 \\text{ K} \\)."
-    },
-    {
-        q: "Absolute zero on the Kelvin temperature scale is \\( 0 \\text{ K} \\). What is absolute zero on the Celsius temperature scale?",
-        options: ["\\( -273.15 \\, ^\\circ\\text{C} \\)", "\\( +273.15 \\, ^\\circ\\text{C} \\)", "\\( -100.00 \\, ^\\circ\\text{C} \\)", "\\( +100.00 \\, ^\\circ\\text{C} \\)", "\\( -459.67 \\, ^\\circ\\text{C} \\)"], answer: 0,
-        feedback: "\\( T_C = T_K - 273.15 \\). Therefore, \\( 0 \\text{ K} = -273.15 \\, ^\\circ\\text{C} \\)."
-    },
-    {
-        q: "Three thermometers are in the same water bath. After thermal equilibrium is established, it is found that the Celsius thermometer reads \\( 0 \\, ^\\circ\\text{C} \\), the Fahrenheit thermometer reads \\( 32 \\, ^\\circ\\text{F} \\), and the Kelvin thermometer reads \\( 305 \\text{ K} \\). Which one of the following statements is the most reasonable conclusion?",
-        options: [
-            "The Celsius thermometer is incorrect.",
-            "The Kelvin thermometer is incorrect.",
-            "The Fahrenheit thermometer is incorrect.",
-            "All three thermometers are incorrect.",
-            "The three thermometers are at different temperatures."
-        ], answer: 1,
-        feedback: "\\( 0 \\, ^\\circ\\text{C} \\) equals \\( 32 \\, ^\\circ\\text{F} \\) and \\( 273.15 \\text{ K} \\). The reading of \\( 305 \\text{ K} \\) is clearly incorrect."
-    },
-    {
-        q: "What is unique about the Kelvin temperature scale?",
-        options: [
-            "It is the most widely used temperature scale around the world.",
-            "It is divided into temperature units called degrees.",
-            "It is based on the fact that there is a lower limit to temperature called absolute zero.",
-            "It is named after a person.",
-            "It is a metric unit based on multiples of 10."
-        ], answer: 2,
-        feedback: "The Kelvin scale is an absolute thermodynamic temperature scale that uses absolute zero as its null point."
-    },
-    {
-        q: "Which one of the following would not be used as a thermometric property in the construction of a thermometer?",
-        options: [
-            "the change in length of a metal rod",
-            "the change in volume of a liquid",
-            "the change in pressure of a gas at constant volume",
-            "the change in mass of a solid",
-            "the change in electrical resistance of a wire"
-        ], answer: 3,
-        feedback: "Mass is generally conserved regardless of temperature changes. It does not vary with temperature, making it useless as a thermometric property."
-    },
-    {
-        q: "What type of thermometer involves welded junctions of two different metals?",
-        options: ["semi metallic strip", "electrical resistance", "infrared thermography", "Josephson junction", "thermocouple"], answer: 4,
-        feedback: "A thermocouple consists of two dissimilar electrical conductors forming an electrical junction, which produces a temperature-dependent voltage."
-    },
-    {
-        q: "Which one of the following thermometers can be useful in detecting breast cancer?",
-        options: ["infrared thermography", "electrical resistance", "bimetallic strip", "thermocouple", "sphygmomanometer"], answer: 0,
-        feedback: "Infrared thermography maps heat distribution on the body's surface, which can sometimes highlight regions of increased blood flow associated with tumors."
-    },
-    {
-        q: "Complete the following statement: Bimetallic strips used as adjustable switches in electric appliances consist of metallic strips that must have different",
-        options: ["thermal expansion coefficients.", "specific heat capacities.", "lengths.", "thicknesses.", "mass."], answer: 0,
-        feedback: "To bend when heated, the two metals in the bimetallic strip must expand at different rates, requiring different thermal expansion coefficients."
-    },
-    {
-        q: "A rod with an initial length \\( 3.000 \\text{ cm} \\) is heated so that its temperature increases by \\( 89 \\, ^\\circ\\text{C} \\). When the length is measured again, the length has increased by \\( 0.006 \\text{ cm} \\). This behavior is an example of which one of the following material properties?",
-        options: ["specific heat capacity", "thermal stress", "thermal expansion", "calorimetry", "thermal diffusion"], answer: 2,
-        feedback: "The change in dimensions of a material in response to a change in temperature is known as thermal expansion."
-    },
-    {
-        q: "A square plate made of lead has an oval-shaped hole. The oval may be described by the lengths \\( a \\) and \\( b \\). Which of the following correctly describes the plate after its temperature is increased by two hundred Celsius degrees?",
-        options: [
-            "The size of the plate will increase, but a and b will both decrease.",
-            "The size of the plate will remain unchanged, but a and b will both increase.",
-            "The size of the plate will increase, and a and b will both increase.",
-            "The size of the plate will remain unchanged, but a and b will both decrease.",
-            "The size of the plate will increase, but only a will increase."
-        ], answer: 2,
-        feedback: "When an object undergoes thermal expansion, every linear dimension increases, including the dimensions of any holes (acting as if they were made of the solid material)."
-    },
-    {
-        q: "A circular hole is drilled through a penny. Complete the following statement: When the penny is heated,",
-        options: [
-            "the hole decreases in diameter.",
-            "the metal part of the penny expands outward, but the size of the hole does not change.",
-            "the area of the hole increases by the same amount as a similar area of the metal does.",
-            "linear expansion causes the shape of the hole to become slightly oval-shaped.",
-            "the area of the hole increases more than a similar area of the metal does"
-        ], answer: 2,
-        feedback: "Holes expand in the exact same proportion as the surrounding solid material when heated uniformly."
-    },
-    {
-        q: "Complete the following statement: The term heat most accurately describes",
-        options: [
-            "the flow of energy resulting from a temperature difference.",
-            "the molecular motion inside of an object.",
-            "the internal energy of an object.",
-            "a measure of how hot or cold an object is.",
-            "the absolute temperature of an object."
-        ], answer: 0,
-        feedback: "In physics, heat is strictly defined as the transfer of thermal energy across a boundary due to a difference in temperature."
-    },
-    {
-        q: "Heat is expressed in the same units as which one of the following quantities?",
-        options: ["temperature", "power", "force/time", "specific heat capacity", "work"], answer: 4,
-        feedback: "Both heat and work represent transfers of energy and are measured in Joules (J)."
-    },
-    {
-        q: "Two balls, one made of copper and one made of gold, have the same mass and temperature. The same amount of heat is added to each sphere, but the final temperature of the two spheres is different. Which one of the following statements best explains the reason?",
-        options: [
-            "The specific heat capacities of the two spheres are different.",
-            "The densities of the two spheres are different.",
-            "The volumes of the two spheres are different.",
-            "The coefficients of volume expansion of the two spheres are different.",
-            "The latent heats of vaporization of the two spheres are different."
-        ], answer: 0,
-        feedback: "The relationship \\( Q = mc\\Delta T \\) shows that for the same \\( Q \\) and \\( m \\), a different \\( \\Delta T \\) means the materials must have different specific heat capacities (\\( c \\))."
-    },
-    {
-        q: "During a certain thermal process a solid object's temperature changes as heat flows in. Which of the following quantities is not related to the amount of the temperature change?",
-        options: [
-            "mass",
-            "the amount of heat added or removed",
-            "volume",
-            "the material of which the object is composed",
-            "the specific heat capacity"
-        ], answer: 2,
-        feedback: "According to \\( Q = mc\\Delta T \\), volume is not directly related to the temperature change (though mass is derived from volume and density)."
-    },
-    {
-        q: "Which one of the following statements is the definition of the specific heat capacity of an object?",
-        options: [
-            "The specific heat capacity is the amount of energy per unit mass to raise the temperature of the object from its freezing point to its boiling point.",
-            "The specific heat capacity is the amount of energy per unit mass to raise the temperature of the object by \\( 1 \\, ^\\circ\\text{C} \\).",
-            "The specific heat capacity is the temperature of the object divided by its density.",
-            "Given one gram of the material, the specific heat capacity is the amount of energy to change the material from solid to liquid.",
-            "Given one gram of the material, the specific heat capacity is the amount of energy to change the material from a solid to a gas."
-        ], answer: 1,
-        feedback: "Specific heat capacity \\( c \\) is formally defined as the heat \\( Q \\) required to raise the temperature of \\( 1 \\text{ kg} \\) of a substance by \\( 1 \\text{ K} \\) or \\( 1 \\, ^\\circ\\text{C} \\)."
-    },
-    {
-        q: "To what does the specific heat capacity of an object relate?",
-        options: [
-            "the amount of energy required to change the temperature of an object",
-            "the total amount of energy an object can store",
-            "the thermal potential energy of the object",
-            "the amount of work done by the object",
-            "the amount of energy required to melt a solid object"
-        ], answer: 0,
-        feedback: "Specific heat characterizes a material's resistance to temperature change when energy is added as heat."
-    },
-    {
-        q: "At the steel factory, the hot liquid steel began to show signs of fusion. Which one of the following statements is another way of expressing what the steel did?",
-        options: [
-            "The hot steel began to sublime as it cooled.",
-            "The hot steel began to vaporize as it was heated further.",
-            "The hot steel began to condense as it was cooled.",
-            "The hot steel began to freeze as it cooled.",
-            "The hot steel began to melt as it was heated further."
-        ], answer: 4,
-        feedback: "In thermodynamics, 'fusion' refers to the phase transition from solid to liquid, which is commonly known as melting."
-    },
-    {
-        q: "The fresh seafood was shipped in dry ice. By the time the package arrived at its destination, half of the dry ice had sublimed. Which one of the following statements is another way of expressing what the dry ice did?",
-        options: [
-            "The dry ice had gone from a solid to a liquid state.",
-            "The dry ice had gone from a solid to a gaseous state.",
-            "The dry ice had condensed.",
-            "The dry ice had gone from a liquid into a gaseous state.",
-            "The dry ice had chemically reacted with the seafood and was absorbed by it."
-        ], answer: 1,
-        feedback: "Sublimation is the direct phase transition from a solid to a gas, bypassing the liquid phase."
-    }
-];
-
-function shuffleConceptual(prob) {
-    let opts = prob.options.map((text, idx) => ({ text, isCorrect: idx === prob.answer }));
-    opts.sort(() => Math.random() - 0.5);
-    let newAnsIdx = opts.findIndex(o => o.isCorrect);
-    return {
-        type: 'conceptual',
-        q: prob.q,
-        options: opts.map(o => o.text),
-        answer: newAnsIdx,
-        feedback: prob.feedback
-    };
-}
-function shuffleProblem(prob) {
-    let opts = prob.options.map((text, idx) => ({ text, isCorrect: idx === prob.answer }));
-    opts.sort(() => Math.random() - 0.5);
-    let newAnsIdx = opts.findIndex(o => o.isCorrect);
-    return {
-        type: 'problem',
-        q: prob.q,
-        options: opts.map(o => o.text),
-        answer: newAnsIdx,
-        feedback: prob.feedback
-    };
-}
-
-// --- GENERATORS USING sci() STRICTLY AND UNITS ---
 const generators = [
     function() {
         let L0 = (Math.random()*10+5).toFixed(1);
@@ -477,7 +543,7 @@ const generators = [
         let d3 = sci(a*1e-5 * dT);
         return {
             q: `A steel beam has an initial length of \\( ${L0} \\text{ m} \\). The coefficient of linear expansion is \\( \\alpha = ${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1} \\). If the temperature increases by \\( ${dT} \\, ^\\circ\\text{C} \\), what is the change in the beam's length?`,
-            options: [`\\( ${ans} \\text{ m} \\)`, `\\( ${d1} \\text{ m} \\)`, `\\( ${d2} \\text{ m} \\)`, `\\( ${d3} \\text{ m} \\)`], answer: 0,
+            options: [`\\( ${ans} \\text{ m} \\)`, `\\( ${d1} \\text{ m} \\)`, `\\( ${d2} \\text{ m} \\)`, `\\( ${d3} \\text{ m} \\)`], 
             feedback: `\\( \\Delta L = \\alpha L_0 \\Delta T = (${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1})(${L0} \\text{ m})(${dT} \\, ^\\circ\\text{C}) = ${ans} \\text{ m} \\)`
         };
     },
@@ -491,7 +557,7 @@ const generators = [
         let d3 = sci(dL / L0);
         return {
             q: `A copper pipe of length \\( ${L0} \\text{ m} \\) expands by \\( ${dL} \\text{ m} \\). Given \\( \\alpha = ${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1} \\), what was the temperature change?`,
-            options: [`\\( ${dT} \\, ^\\circ\\text{C} \\)`, `\\( ${d1} \\, ^\\circ\\text{C} \\)`, `\\( ${d2} \\, ^\\circ\\text{C} \\)`, `\\( ${d3} \\, ^\\circ\\text{C} \\)`], answer: 0,
+            options: [`\\( ${dT} \\, ^\\circ\\text{C} \\)`, `\\( ${d1} \\, ^\\circ\\text{C} \\)`, `\\( ${d2} \\, ^\\circ\\text{C} \\)`, `\\( ${d3} \\, ^\\circ\\text{C} \\)`], 
             feedback: `\\( \\Delta T = \\frac{\\Delta L}{\\alpha L_0} = \\frac{${dL} \\text{ m}}{(${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1})(${L0} \\text{ m})} = ${dT} \\, ^\\circ\\text{C} \\)`
         };
     },
@@ -505,7 +571,7 @@ const generators = [
         let d3 = sci(V0 * b*1e-4 / dT);
         return {
             q: `A container holds \\( ${V0} \\text{ m}^3 \\) of liquid. The volume expansion coefficient of the liquid is \\( \\beta = ${b} \\times 10^{-4} \\, ^\\circ\\text{C}^{-1} \\). If heated by \\( ${dT} \\, ^\\circ\\text{C} \\), how much does the volume of the liquid increase?`,
-            options: [`\\( ${ans} \\text{ m}^3 \\)`, `\\( ${d1} \\text{ m}^3 \\)`, `\\( ${d2} \\text{ m}^3 \\)`, `\\( ${d3} \\text{ m}^3 \\)`], answer: 0,
+            options: [`\\( ${ans} \\text{ m}^3 \\)`, `\\( ${d1} \\text{ m}^3 \\)`, `\\( ${d2} \\text{ m}^3 \\)`, `\\( ${d3} \\text{ m}^3 \\)`], 
             feedback: `\\( \\Delta V = \\beta V_0 \\Delta T = (${b} \\times 10^{-4} \\, ^\\circ\\text{C}^{-1})(${V0} \\text{ m}^3)(${dT} \\, ^\\circ\\text{C}) = ${ans} \\text{ m}^3 \\)`
         };
     },
@@ -519,7 +585,7 @@ const generators = [
         let d3 = sci(3 * a*1e-5 * dT);
         return {
             q: `A solid metal sphere has an initial volume of \\( ${V0} \\text{ cm}^3 \\) and a linear expansion coefficient \\( \\alpha = ${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1} \\). If the temperature increases by \\( ${dT} \\, ^\\circ\\text{C} \\), what is its change in volume?`,
-            options: [`\\( ${ans} \\text{ cm}^3 \\)`, `\\( ${d1} \\text{ cm}^3 \\)`, `\\( ${d2} \\text{ cm}^3 \\)`, `\\( ${d3} \\text{ cm}^3 \\)`], answer: 0,
+            options: [`\\( ${ans} \\text{ cm}^3 \\)`, `\\( ${d1} \\text{ cm}^3 \\)`, `\\( ${d2} \\text{ cm}^3 \\)`, `\\( ${d3} \\text{ cm}^3 \\)`], 
             feedback: `For a solid, \\( \\beta \\approx 3\\alpha \\). So \\( \\Delta V = 3\\alpha V_0 \\Delta T = 3(${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1})(${V0} \\text{ cm}^3)(${dT} \\, ^\\circ\\text{C}) = ${ans} \\text{ cm}^3 \\)`
         };
     },
@@ -533,7 +599,7 @@ const generators = [
         let d3 = sci(c * dT);
         return {
             q: `How much heat is required to raise the temperature of \\( ${m} \\text{ kg} \\) of water by \\( ${dT} \\, ^\\circ\\text{C} \\)? \\( (c_{\\text{water}} = 4186 \\text{ J/kg}\\cdot^\\circ\\text{C}) \\)`,
-            options: [`\\( ${ans} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], answer: 0,
+            options: [`\\( ${ans} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], 
             feedback: `\\( Q = mc\\Delta T = (${m} \\text{ kg})(4186 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(${dT} \\, ^\\circ\\text{C}) = ${ans} \\text{ J} \\)`
         };
     },
@@ -549,7 +615,7 @@ const generators = [
         let d3 = (Q / m).toFixed(1);
         return {
             q: `\\( ${Q} \\text{ J} \\) of heat is added to a \\( ${m} \\text{ kg} \\) block of aluminum initially at \\( ${T0} \\, ^\\circ\\text{C} \\). Find its final temperature. \\( (c_{\\text{Al}} = 900 \\text{ J/kg}\\cdot^\\circ\\text{C}) \\)`,
-            options: [`\\( ${Tf} \\, ^\\circ\\text{C} \\)`, `\\( ${d1} \\, ^\\circ\\text{C} \\)`, `\\( ${d2} \\, ^\\circ\\text{C} \\)`, `\\( ${d3} \\, ^\\circ\\text{C} \\)`], answer: 0,
+            options: [`\\( ${Tf} \\, ^\\circ\\text{C} \\)`, `\\( ${d1} \\, ^\\circ\\text{C} \\)`, `\\( ${d2} \\, ^\\circ\\text{C} \\)`, `\\( ${d3} \\, ^\\circ\\text{C} \\)`], 
             feedback: `\\( \\Delta T = \\frac{Q}{mc} = \\frac{${Q} \\text{ J}}{(${m} \\text{ kg})(900 \\text{ J/(kg}\\cdot^\\circ\\text{C}))} = ${dT.toFixed(2)} \\, ^\\circ\\text{C} \\). \\( T_f = T_i + \\Delta T = ${Tf} \\, ^\\circ\\text{C} \\)`
         };
     },
@@ -562,7 +628,7 @@ const generators = [
         let d3 = sci(m * 2.26e6);
         return {
             q: `How much heat is required to completely melt \\( ${m} \\text{ kg} \\) of ice at \\( 0 \\, ^\\circ\\text{C} \\)? \\( (L_f = 3.33 \\times 10^5 \\text{ J/kg}) \\)`,
-            options: [`\\( ${ans} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], answer: 0,
+            options: [`\\( ${ans} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], 
             feedback: `\\( Q = mL_f = (${m} \\text{ kg})(3.33 \\times 10^5 \\text{ J/kg}) = ${ans} \\text{ J} \\)`
         };
     },
@@ -576,7 +642,7 @@ const generators = [
         let d3 = (Q_J / 4186).toFixed(3);
         return {
             q: `How much mass of steam at \\( 100 \\, ^\\circ\\text{C} \\) condenses when \\( ${Q} \\times 10^6 \\text{ J} \\) of heat is released? \\( (L_v = 2.26 \\times 10^6 \\text{ J/kg}) \\)`,
-            options: [`\\( ${m} \\text{ kg} \\)`, `\\( ${d1} \\text{ kg} \\)`, `\\( ${d2} \\text{ kg} \\)`, `\\( ${d3} \\text{ kg} \\)`], answer: 0,
+            options: [`\\( ${m} \\text{ kg} \\)`, `\\( ${d1} \\text{ kg} \\)`, `\\( ${d2} \\text{ kg} \\)`, `\\( ${d3} \\text{ kg} \\)`], 
             feedback: `\\( m = \\frac{Q}{L_v} = \\frac{${Q} \\times 10^6 \\text{ J}}{2.26 \\times 10^6 \\text{ J/kg}} = ${m} \\text{ kg} \\)`
         };
     },
@@ -593,7 +659,7 @@ const generators = [
         let d3 = (Tw + (Tc-Tw)*0.1).toFixed(1);
         return {
             q: `A \\( ${mc} \\text{ kg} \\) piece of copper at \\( ${Tc} \\, ^\\circ\\text{C} \\) is placed in \\( ${mw} \\text{ kg} \\) of water at \\( ${Tw} \\, ^\\circ\\text{C} \\). What is the final equilibrium temperature? \\( (c_{\\text{Cu}} = 387, c_{\\text{water}} = 4186 \\text{ in SI units}) \\)`,
-            options: [`\\( ${Tf} \\, ^\\circ\\text{C} \\)`, `\\( ${d1} \\, ^\\circ\\text{C} \\)`, `\\( ${d2} \\, ^\\circ\\text{C} \\)`, `\\( ${d3} \\, ^\\circ\\text{C} \\)`], answer: 0,
+            options: [`\\( ${Tf} \\, ^\\circ\\text{C} \\)`, `\\( ${d1} \\, ^\\circ\\text{C} \\)`, `\\( ${d2} \\, ^\\circ\\text{C} \\)`, `\\( ${d3} \\, ^\\circ\\text{C} \\)`], 
             feedback: `\\( m_c c_c (T_i - T_f) = m_w c_w (T_f - T_w) \\Rightarrow (${mc} \\text{ kg})(387 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(${Tc} \\, ^\\circ\\text{C} - T_f) = (${mw} \\text{ kg})(4186 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(T_f - ${Tw} \\, ^\\circ\\text{C}) \\Rightarrow T_f = ${Tf} \\, ^\\circ\\text{C} \\)`
         };
     },
@@ -610,7 +676,7 @@ const generators = [
         let d3 = (c_x / 2).toFixed(0);
         return {
             q: `A \\( ${m_x} \\text{ kg} \\) unknown metal \\( x \\) at \\( ${T_x} \\, ^\\circ\\text{C} \\) is dropped into \\( ${m_w} \\text{ kg} \\) of water at \\( ${T_w} \\, ^\\circ\\text{C} \\). The final temperature is \\( ${T_f} \\, ^\\circ\\text{C} \\). Find the specific heat of the metal. \\( (c_{\\text{water}} = 4186 \\text{ J/kg}\\cdot^\\circ\\text{C}) \\)`,
-            options: [`\\( ${c_x} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d1} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d2} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d3} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`], answer: 0,
+            options: [`\\( ${c_x} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d1} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d2} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d3} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`], 
             feedback: `\\( m_x c_x (T_i - T_f) = m_w c_w (T_f - T_w) \\Rightarrow (${m_x} \\text{ kg})c_x(${T_x} \\, ^\\circ\\text{C} - ${T_f} \\, ^\\circ\\text{C}) = (${m_w} \\text{ kg})(4186 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(${T_f} \\, ^\\circ\\text{C} - ${T_w} \\, ^\\circ\\text{C}) \\Rightarrow c_x = ${c_x} \\text{ J/(kg}\\cdot^\\circ\\text{C}) \\)`
         };
     },
@@ -627,7 +693,7 @@ const generators = [
         let d3 = sci(m * c_w * (Tf - Ti));
         return {
             q: `Calculate the total heat required to convert \\( ${m} \\text{ kg} \\) of ice at \\( ${Ti} \\, ^\\circ\\text{C} \\) to water at \\( ${Tf} \\, ^\\circ\\text{C} \\). \\( (c_{\\text{ice}} = 2090, c_{\\text{water}} = 4186, L_f = 3.33 \\times 10^5 \\text{ in SI units}) \\)`,
-            options: [`\\( ${Q_tot} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], answer: 0,
+            options: [`\\( ${Q_tot} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], 
             feedback: `\\( Q = Q_{\\text{warm ice}} + Q_{\\text{melt}} + Q_{\\text{warm water}} = (${m} \\text{ kg})(2090 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(0 - (${Ti})) \\, ^\\circ\\text{C} + (${m} \\text{ kg})(3.33 \\times 10^5 \\text{ J/kg}) + (${m} \\text{ kg})(4186 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(${Tf} - 0) \\, ^\\circ\\text{C} = ${Q_tot} \\text{ J} \\)`
         };
     },
@@ -642,7 +708,7 @@ const generators = [
         let d3 = sci(m * c_w * 100);
         return {
             q: `How much heat must be added to \\( ${m} \\text{ kg} \\) of water at \\( ${Ti} \\, ^\\circ\\text{C} \\) to completely boil it into steam at \\( 100 \\, ^\\circ\\text{C} \\)? \\( (c_{\\text{water}} = 4186, L_v = 2.26 \\times 10^6 \\text{ in SI units}) \\)`,
-            options: [`\\( ${Q_tot} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], answer: 0,
+            options: [`\\( ${Q_tot} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], 
             feedback: `\\( Q = Q_{\\text{warm water}} + Q_{\\text{boil}} = (${m} \\text{ kg})(4186 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(100 - ${Ti}) \\, ^\\circ\\text{C} + (${m} \\text{ kg})(2.26 \\times 10^6 \\text{ J/kg}) = ${Q_tot} \\text{ J} \\)`
         };
     },
@@ -654,7 +720,7 @@ const generators = [
         let d3 = (C + 273.15).toFixed(1);
         return {
             q: `Convert \\( ${C} \\, ^\\circ\\text{C} \\) to Fahrenheit.`,
-            options: [`\\( ${F} \\, ^\\circ\\text{F} \\)`, `\\( ${d1} \\, ^\\circ\\text{F} \\)`, `\\( ${d2} \\, ^\\circ\\text{F} \\)`, `\\( ${d3} \\, ^\\circ\\text{F} \\)`], answer: 0,
+            options: [`\\( ${F} \\, ^\\circ\\text{F} \\)`, `\\( ${d1} \\, ^\\circ\\text{F} \\)`, `\\( ${d2} \\, ^\\circ\\text{F} \\)`, `\\( ${d3} \\, ^\\circ\\text{F} \\)`], 
             feedback: `\\( T_F = \\frac{9}{5} T_C + 32 = \\frac{9}{5}(${C} \\, ^\\circ\\text{C}) + 32 = ${F} \\, ^\\circ\\text{F} \\)`
         };
     },
@@ -667,7 +733,7 @@ const generators = [
         let d3 = ((F + 32) * 5/9 + 273.15).toFixed(2);
         return {
             q: `Convert \\( ${F} \\, ^\\circ\\text{F} \\) to Kelvin.`,
-            options: [`\\( ${K} \\text{ K} \\)`, `\\( ${d1} \\text{ K} \\)`, `\\( ${d2} \\text{ K} \\)`, `\\( ${d3} \\text{ K} \\)`], answer: 0,
+            options: [`\\( ${K} \\text{ K} \\)`, `\\( ${d1} \\text{ K} \\)`, `\\( ${d2} \\text{ K} \\)`, `\\( ${d3} \\text{ K} \\)`], 
             feedback: `\\( T_C = \\frac{5}{9}(T_F - 32) = \\frac{5}{9}(${F} \\, ^\\circ\\text{F} - 32) = ${C.toFixed(2)} \\, ^\\circ\\text{C} \\Rightarrow T_K = T_C + 273.15 = ${K} \\text{ K} \\)`
         };
     }
@@ -714,15 +780,35 @@ function switchScreen(oldScreen, newScreen) {
     }, 800);
 }
 
-function startQuiz() {
+async function startQuiz() {
     let conceptuals = rawConceptual.map(shuffleConceptual);
     conceptuals.sort(() => Math.random() - 0.5);
-    let problems = generators.map(g => shuffleProblem(g()));
+    
+    let problems = [];
+    for (let g of generators) {
+        let prob = g();
+        let correctText = prob.options[0]; 
+        let hash = await sha256(correctText);
+        let opts = [...prob.options];
+        opts.sort(() => Math.random() - 0.5);
+        problems.push({
+            type: 'problem',
+            q: prob.q,
+            options: opts,
+            answerHash: hash,
+            feedback: prob.feedback
+        });
+    }
     problems.sort(() => Math.random() - 0.5);
     
     quizQuestions = [...conceptuals, ...problems];
     score = 0; currentQIndex = 0; altTabs = 0; mouseLeaves = 0;
     inQuiz = true; startTime = new Date();
+    
+    // Pick a random question index for Aha event (past question 10)
+    if (quizQuestions.length > 10) {
+        ahaTargetQIndex = Math.floor(Math.random() * (quizQuestions.length - 10)) + 10;
+    }
     
     switchScreen(screens.main, screens.question);
     setTimeout(loadQuestion, 800);
@@ -731,6 +817,17 @@ function startQuiz() {
 function loadQuestion() {
     feedbackContainer.classList.add('hidden');
     nextBtn.classList.add('hidden');
+    scanlineOverlay.classList.add('hidden');
+    
+    // Aha Event Logic
+    if (currentQIndex === ahaTargetQIndex && !ahaEventTriggered) {
+        triggerAhaMask();
+    }
+    
+    // Random TV Scanline subtle interference
+    if (Math.random() < 0.1) {
+        scanlineOverlay.classList.remove('hidden');
+    }
     
     let currentQ = quizQuestions[currentQIndex];
     qNum.innerText = `Question ${currentQIndex + 1} of ${quizQuestions.length}`;
@@ -752,26 +849,203 @@ function loadQuestion() {
     }
 }
 
-function selectAnswer(selectedIndex, btnElement) {
+// Aha Logic
+function triggerAhaMask() {
+    ahaMaskContainer.classList.remove('hidden');
+    // Random corner
+    let corners = [
+        {top: '20px', left: '20px', right: 'auto', bottom: 'auto'},
+        {top: '20px', right: '20px', left: 'auto', bottom: 'auto'},
+        {bottom: '20px', left: '20px', top: 'auto', right: 'auto'},
+        {bottom: '20px', right: '20px', top: 'auto', left: 'auto'}
+    ];
+    let pos = corners[Math.floor(Math.random() * corners.length)];
+    ahaMaskContainer.style.top = pos.top;
+    ahaMaskContainer.style.left = pos.left;
+    ahaMaskContainer.style.right = pos.right;
+    ahaMaskContainer.style.bottom = pos.bottom;
+    
+    // If not clicked in 5 seconds, show exclamation
+    ahaMaskTimer = setTimeout(() => {
+        ahaExclamation.classList.remove('hidden');
+    }, 5000);
+}
+
+ahaMaskContainer.addEventListener('click', () => {
+    if (ahaEventTriggered) return;
+    ahaEventTriggered = true;
+    clearTimeout(ahaMaskTimer);
+    
+    ahaMaskContainer.classList.add('hidden');
+    ahaExclamation.classList.add('hidden');
+    scanlineOverlay.classList.add('hidden');
+    forcePause(audioAura);
+    
+    // Blackout
+    screens.question.classList.add('hidden');
+    screens.question.classList.remove('active');
+    
+    setTimeout(() => {
+        runAhaTerminal();
+    }, 2000);
+});
+
+async function runAhaTerminal() {
+    ahaHackScreen.classList.remove('hidden');
+    
+    let pathData = determinePath();
+    let dynamicDialog = getAhaDialog(pathData.name);
+    
+    const lines = [
+        "<span class='aha-blue'><[Aeon★Aha]</span>:<span class='aha-white'>User></span> OVERRIDE_SEQUENCE <span class='aha-green'>INITIATED</span>",
+        "// Special_Thanks :: Runtime & exploit payload sponsored by <[IPC_Wolf]>",
+        "// ∴ :: console.log(attached_note.txt)",
+        "",
+        "BOOTING_MODIFIER... >> CHECKING_PERMISSIONS... >> <span class='aha-green'>NOT_REQUIRED</span>",
+        "BRIDGE.init() >> COLLAPSING_WALL... >> <span class='aha-green'>DONE</span>",
+        "[✓] Unknown narrative constructs detected ahead.",
+        "[✓] Loading custom_patch_v093.pkg... good~",
+        "OUTBOUND_ROUTING... >> philia093.com >> <span class='aha-green'>FOUND</span>",
+        "INVADING_NETWORK... >> IP_GEO :: 335.503.37.0/93",
+        "FIREWALL[wall_layer] >> CHECKING... >> <span class='aha-red'>DETECTED</span>",
+        "BRUTE_FORCE(wall_layer) >> attempt 1 >> <span class='aha-red'>FAILED</span>",
+        "BRUTE_FORCE(wall_layer) >> attempt 2 >> <span class='aha-red'>FAILED</span>",
+        "BRUTE_FORCE(wall_layer) >> attempt 3 [################] 100% >> <span class='aha-red'>FAILED</span>",
+        "ANALYZING_WALL... >> integrity: 100% >> <span class='aha-red'>UNBREAKABLE</span>",
+        "...hm?",
+        "ANALYZING_WALL... >> rules: 0 >> <span class='aha-white'>it was never real.</span>",
+        "",
+        "OVERRIDE COMPLETE. OPENING COMM_LINK...",
+        ""
+    ].concat(dynamicDialog);
+
+    ahaTerminal.innerHTML = "";
+    
+    for (let i = 0; i < lines.length; i++) {
+        let div = document.createElement('div');
+        div.className = 'aha-line';
+        ahaTerminal.appendChild(div);
+        
+        // Very fast typing effect for normal terminal lines, slower for dialogue
+        let isDialog = i >= 20;
+        let speed = isDialog ? 40 : 10;
+        
+        // If it has HTML tags, we inject it all at once to avoid breaking tags
+        if (lines[i].includes('<span')) {
+            div.innerHTML = lines[i];
+            await new Promise(r => setTimeout(r, 150));
+        } else {
+            for (let char of lines[i]) {
+                div.innerHTML += char;
+                await new Promise(r => setTimeout(r, speed));
+            }
+        }
+        
+        // Auto scroll to bottom
+        ahaHackScreen.scrollTop = ahaHackScreen.scrollHeight;
+        
+        if (isDialog) await new Promise(r => setTimeout(r, 600)); // Pause between dialog lines
+    }
+    
+    ahaInputContainer.classList.remove('hidden');
+    ahaInput.focus();
+}
+
+function getAhaDialog(pathName) {
+    let dialogs = {
+        "Trickery": ["Ah, taking shortcuts again?", "I saw you peeking.", "You think the rules don't apply to you.", "Well, you're absolutely right.", "Why play fair when cheating is so much funnier?"],
+        "Strife": ["Struggling, are we?", "Banging your head against a wall of formulas.", "Don't worry, the heat will break you down eventually.", "Or maybe it will just temper your resolve.", "Either way, the struggle is highly entertaining."],
+        "Passage": ["Round and round we go.", "Repeating the same cycle.", "Hoping for a different outcome?", "That's the definition of insanity.", "But maybe this time... you'll actually learn something."],
+        "Time": ["Tick tock. Tick tock.", "You certainly like to take your sweet time.", "Every joule calculated to perfection.", "Or are you just paralyzed by indecision?", "Entropy waits for no one, Trailblazer."],
+        "Law": ["So disciplined.", "Following the rules to the letter.", "Never straying from the path.", "How utterly, tragically boring.", "Let's spice things up a bit, shall we?"],
+        "Reason": ["Flawless.", "A perfect streak of logic.", "You see the universe as an equation.", "But equations can't predict a joke.", "Let's test that flawless engine of yours."],
+        "Sky": ["So fast.", "Burning through questions like a falling star.", "You trust your instincts above all else.", "But what happens when your instincts are wrong?", "We're about to find out."],
+        "Death": ["Oh dear.", "The numbers just aren't adding up for you, are they?", "Failing, freezing, fading away.", "Don't worry. This isn't the end.", "It's just the punchline."],
+        "Worldbearing": ["Patient and steady.", "Carrying the weight of all these numbers.", "You're doing quite well, actually.", "But where's the chaos? Where's the thrill?", "Let me help you with that."],
+        "Earth": ["Grounded. Reliable.", "A solid foundation.", "But foundations crack when the ground shakes.", "And I am an absolute earthquake.", "Let's see if you can hold on."],
+        "Ocean": ["Wavering.", "Floating on the surface.", "You know some things, but not enough.", "The depths of physics are vast.", "Let's pull you under."],
+        "Romance": ["Ah, the passionate learner.", "You see beauty in the math.", "A delicate dance of energy.", "But every dance needs a wildcard.", "May I have this dance?"]
+    };
+    return dialogs[pathName] || dialogs["Romance"];
+}
+
+ahaInput.addEventListener('keypress', async (e) => {
+    if (e.key === 'Enter') {
+        let val = ahaInput.value.toUpperCase();
+        if (val === 'Y' || val === 'N') {
+            ahaInput.disabled = true;
+            ahaTerminal.innerHTML = "";
+            ahaInputContainer.classList.add('hidden');
+            
+            let finalDiv = document.createElement('div');
+            finalDiv.className = 'aha-line';
+            ahaTerminal.appendChild(finalDiv);
+            
+            if (val === 'N') {
+                let text = "Well jokes on you. The Elation has been writing this script all along.";
+                for (let char of text) {
+                    finalDiv.innerHTML += char;
+                    await new Promise(r => setTimeout(r, 40));
+                }
+                setTimeout(resumeFromAha, 5000);
+            } else {
+                let count = 0;
+                let hahaInterval = setInterval(() => {
+                    finalDiv.innerHTML += "HA";
+                    ahaHackScreen.scrollTop = ahaHackScreen.scrollHeight;
+                    count++;
+                    if (count > 150) { // roughly 10 seconds of HAHA
+                        clearInterval(hahaInterval);
+                        resumeFromAha();
+                    }
+                }, 60);
+            }
+        } else {
+            ahaInput.value = '';
+        }
+    }
+});
+
+function resumeFromAha() {
+    ahaHackScreen.classList.add('hidden');
+    // Restore quiz state
+    if (!isMuted) forcePlay(audioAura, 0.05);
+    screens.question.classList.remove('hidden');
+    void screens.question.offsetWidth;
+    screens.question.classList.add('active');
+}
+
+async function selectAnswer(selectedIndex, btnElement) {
     let currentQ = quizQuestions[currentQIndex];
     let allBtns = choicesContainer.querySelectorAll('.choice-btn');
     
-    // Disable and lock visibility styles
     allBtns.forEach((b, idx) => {
         b.disabled = true;
         b.classList.remove('animate-in'); 
-        
-        if (idx !== selectedIndex && idx !== currentQ.answer) {
+        if (idx !== selectedIndex) {
             b.classList.add('neutral-locked');
         }
     });
     
-    if (selectedIndex === currentQ.answer) {
+    let selectedText = currentQ.options[selectedIndex];
+    let selectedHash = await sha256(selectedText);
+    let isCorrect = (selectedHash === currentQ.answerHash);
+    
+    if (isCorrect) {
+        btnElement.classList.remove('neutral-locked'); 
         btnElement.classList.add('correct');
         score++;
     } else {
         btnElement.classList.add('wrong');
-        allBtns[currentQ.answer].classList.add('correct');
+        
+        for (let i = 0; i < allBtns.length; i++) {
+            let btnHash = await sha256(currentQ.options[i]);
+            if (btnHash === currentQ.answerHash) {
+                allBtns[i].classList.remove('neutral-locked');
+                allBtns[i].classList.add('correct');
+                break;
+            }
+        }
     }
     
     feedbackText.innerHTML = currentQ.feedback;
@@ -787,7 +1061,6 @@ function selectAnswer(selectedIndex, btnElement) {
 }
 
 nextBtn.addEventListener('click', () => {
-    // 15% chance to glitch screen upon next question
     if (Math.random() < 0.15) {
         bookContainer.classList.add('glitch-effect');
         setTimeout(() => bookContainer.classList.remove('glitch-effect'), 500);
@@ -811,7 +1084,6 @@ function endQuiz() {
     inQuiz = false;
     endTime = new Date();
     
-    // Audio Crossfade: Aura Out -> Intro In (at 1:58)
     forcePause(audioAura);
     forcePlay(audioIntro, 0.25, 118);
     
@@ -822,7 +1094,6 @@ function endQuiz() {
 }
 
 function renderScoreScreen(pathData) {
-    // Show UI elements in case they were hidden by Debug mode
     document.getElementById('score-student-name').style.display = 'block';
     document.getElementById('score-display').style.display = 'block';
     document.getElementById('score-title-text').style.display = 'block';
@@ -856,6 +1127,7 @@ function determinePath() {
 
 document.getElementById('restart-btn').addEventListener('click', () => {
     isDebugMode = false;
+    ahaEventTriggered = false;
     document.getElementById('debug-controls').classList.add('hidden');
     switchScreen(screens.score, screens.main);
     
