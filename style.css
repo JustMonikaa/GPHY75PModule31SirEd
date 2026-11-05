@@ -538,3 +538,71 @@ mjx-container {
     box-shadow: inset 0 0 25px rgba(0,0,0,0.6);
     text-align: justify;
 }
+
+/* --- MOBILE RESPONSIVENESS --- */
+@media (max-width: 900px) {
+    .book-container {
+        flex-direction: column;
+        overflow-y: auto;
+        overflow-x: hidden;
+        height: 88vh;
+        padding-top: 10px;
+    }
+    .book-container::after {
+        display: none; /* Hide spine */
+    }
+    .page {
+        overflow-y: visible;
+        padding: 20px 25px;
+        flex: none;
+    }
+    .left-page {
+        border-right: none;
+        border-bottom: 2px dashed rgba(212, 175, 55, 0.3);
+        padding-bottom: 30px;
+        margin-bottom: 10px;
+    }
+    
+    /* Top Controls and Badges */
+    .top-controls {
+        top: 10px;
+        right: 10px;
+        gap: 10px;
+    }
+    .audio-control {
+        width: 40px;
+        height: 40px;
+    }
+    .audio-control svg {
+        width: 20px;
+        height: 20px;
+    }
+    .attempts-badge {
+        top: 12px;
+        left: 15px;
+        right: auto;
+        font-size: 0.8rem;
+        padding: 5px 8px;
+    }
+    
+    /* Resizing text for mobile */
+    .book-cover { padding: 40px 20px; }
+    .book-cover h1 { font-size: 2.5rem; }
+    .dialog-box { padding: 30px 20px; width: 90vw; }
+    
+    #question-text { font-size: 1.15rem; }
+    .question-header { font-size: 0.85rem; margin-bottom: 15px; padding-bottom: 10px; }
+    .choice-btn { font-size: 1.05rem; padding: 14px 18px; transform: translateX(10px); }
+    
+    #feedback-container { padding: 15px; margin-top: 15px; }
+    #feedback-container h3 { font-size: 1rem; margin-bottom: 10px; }
+    #feedback-text { font-size: 1.05rem; }
+    
+    /* Score Screen */
+    .score-card { padding: 30px 20px; }
+    .path-glow { font-size: 2.5rem; margin: 15px 0; }
+    #score-display { font-size: 1.5rem; margin-bottom: 20px; }
+    .flavor-text-container { font-size: 0.95rem; padding: 20px; line-height: 1.5; }
+    #path-logo { width: 140px; margin-bottom: 15px; }
+    .hsr-btn { font-size: 1rem; padding: 12px 25px; }
+}

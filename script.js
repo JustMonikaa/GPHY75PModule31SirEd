@@ -38,10 +38,17 @@ let isMuted = false;
 let audioInitialized = false;
 let isDebugMode = false;
 let debugPathIndex = 0;
+
+// Fetch attempts from local storage or set to 0. 
+// Do NOT increment here. Increment ONLY when starting a fresh quiz.
 let attempts = parseInt(localStorage.getItem('hsr_quiz_attempts') || '0');
 
-// Update UI with initial attempt count before playing
-attemptDisplays.forEach(el => el.innerText = attempts + 1);
+// Initial display setup
+function updateAttemptDisplays(val) {
+    attemptDisplays.forEach(el => el.innerText = val);
+}
+// Show current attempts + 1, because the user is *about* to start their next attempt
+updateAttemptDisplays(attempts + 1);
 
 // Helper for dynamic flavor text ordinals
 function getOrdinal(n) {
@@ -106,70 +113,33 @@ document.addEventListener('fullscreenchange', () => {
 });
 
 // --- AUDIO SYSTEM ---
-function fadeAudio(audioElement, targetVolume, duration, startAt = null) {
-    if (startAt !== null) {
-        audioElement.currentTime = startAt;
+// Simple clear wrapper around playing
+function forcePlay(audioEl, volume, startTime = null) {
+    if (isMuted) return;
+    if (startTime !== null) {
+        audioEl.currentTime = startTime;
     }
-    
-    // Always attempt play unless specifically told to pause at 0
-    let playPromise = audioElement.play();
-    if (playPromise !== undefined) {
-        playPromise.catch(e => {
-            // Autoplay is blocked by browser policy until interaction.
-            console.log("Audio autoplay prevented by browser.");
-        });
+    audioEl.volume = volume;
+    let promise = audioEl.play();
+    if (promise !== undefined) {
+        promise.catch(e => console.log("Audio autoplay prevented by browser."));
     }
-    
-    let startVol = audioElement.volume;
-    let diff = targetVolume - startVol;
-    let steps = 20;
-    let stepTime = duration / steps;
-    let currentStep = 0;
-    
-    let interval = setInterval(() => {
-        currentStep++;
-        let newVol = startVol + (diff * (currentStep / steps));
-        if (newVol < 0) newVol = 0;
-        if (newVol > 1) newVol = 1;
-        audioElement.volume = newVol;
-        
-        if (currentStep >= steps) {
-            clearInterval(interval);
-            if (targetVolume === 0) audioElement.pause();
-        }
-    }, stepTime);
 }
 
-// Auto-play attempt on load (UNMUTED)
+// Simple wrapper around pausing
+function forcePause(audioEl) {
+    audioEl.pause();
+}
+
+// Ensure the page attempts to play immediately
 window.addEventListener('DOMContentLoaded', () => {
-    audioIntro.volume = 0;
-    audioIntro.currentTime = 51;
-    let playPromise = audioIntro.play();
-    
-    if (playPromise !== undefined) {
-        playPromise.then(() => {
-            // Success! Browser allowed unmuted autoplay.
-            audioInitialized = true;
-            document.getElementById('audio-hint').classList.add('hidden');
-            fadeAudio(audioIntro, 0.25, 1000);
-        }).catch(error => {
-            // Browser blocked unmuted autoplay. Requires interaction.
-            console.log("Browser strictly blocked unmuted autoplay. Awaiting user interaction.");
-        });
-    }
+    forcePlay(audioIntro, 0.25, 51);
 });
 
-// Unmute automatically on first interaction if blocked by browser
+// Catch interaction to force audio if it was blocked
 document.body.addEventListener('click', () => {
-    if (audioInitialized) return;
-    audioInitialized = true;
-    
-    if (!isMuted) {
-        iconMuted.classList.add('hidden');
-        iconUnmuted.classList.remove('hidden');
-        document.getElementById('audio-hint').classList.add('hidden');
-        audioIntro.volume = 0;
-        fadeAudio(audioIntro, 0.25, 1000, 51);
+    if (!isMuted && audioIntro.paused) {
+        forcePlay(audioIntro, 0.25, 51);
     }
 }, { once: true });
 
@@ -180,23 +150,15 @@ muteBtn.addEventListener('click', (e) => {
     if (isMuted) {
         iconMuted.classList.remove('hidden');
         iconUnmuted.classList.add('hidden');
-        audioIntro.pause();
-        audioAura.pause();
+        forcePause(audioIntro);
+        forcePause(audioAura);
     } else {
         iconMuted.classList.add('hidden');
         iconUnmuted.classList.remove('hidden');
-        document.getElementById('audio-hint').classList.add('hidden');
-        
-        if (!audioInitialized) {
-            audioInitialized = true;
-            audioIntro.volume = 0;
-            fadeAudio(audioIntro, 0.25, 1000, 51);
+        if (inQuiz) {
+            forcePlay(audioAura, 0.05);
         } else {
-            if (inQuiz) {
-                audioAura.play();
-            } else {
-                audioIntro.play();
-            }
+            forcePlay(audioIntro, 0.25);
         }
     }
 });
@@ -246,20 +208,18 @@ function activateDebugMode() {
     screens.question.classList.add('hidden');
     nameDialog.classList.add('hidden');
     
-    // Audio Fix
-    fadeAudio(audioIntro, 0, 500);
-    fadeAudio(audioAura, 0, 500);
-    setTimeout(() => fadeAudio(audioIntro, 0.25, 1000, 118), 600);
+    // Switch Audio
+    forcePause(audioAura);
+    forcePlay(audioIntro, 0.25, 118);
 
-    // Initial Path display
-    studentName = studentNameInput.value.trim() || "Debug";
-    
-    // Hide UI elements as requested for Debug Mode
+    // Initial Path display (Clear name and score displays)
+    studentName = "";
     document.getElementById('score-student-name').style.display = 'none';
     document.getElementById('score-display').style.display = 'none';
     document.querySelectorAll('.attempts-badge').forEach(b => b.style.display = 'none');
     
-    let currentPaths = getPaths(attempts + 1); // Mock next attempt
+    // In debug mode, attempts are ignored. We pass 1 just so the text renders normally.
+    let currentPaths = getPaths(1); 
     renderScoreScreen(currentPaths[debugPathIndex]);
     
     screens.score.classList.remove('hidden');
@@ -267,7 +227,7 @@ function activateDebugMode() {
 }
 
 function cycleDebugPath(direction) {
-    let currentPaths = getPaths(attempts + 1);
+    let currentPaths = getPaths(1);
     debugPathIndex += direction;
     if (debugPathIndex < 0) debugPathIndex = currentPaths.length - 1;
     if (debugPathIndex >= currentPaths.length) debugPathIndex = 0;
@@ -638,20 +598,20 @@ const generators = [
         };
     },
     function() {
-        let m_unk = (Math.random()*0.5+0.1).toFixed(2);
+        let m_x = (Math.random()*0.5+0.1).toFixed(2);
         let m_w = (Math.random()*1+0.5).toFixed(2);
         let c_w = 4186;
-        let T_unk = Math.floor(Math.random()*50+100);
+        let T_x = Math.floor(Math.random()*50+100);
         let T_w = Math.floor(Math.random()*10+20);
         let T_f = Math.floor(T_w + Math.random()*5+2);
-        let c_unk = ((m_w * c_w * (T_f - T_w)) / (m_unk * (T_unk - T_f))).toFixed(0);
-        let d1 = ((m_unk * c_w * (T_f - T_w)) / (m_w * (T_unk - T_f))).toFixed(0);
-        let d2 = (4186 * (T_f - T_w) / (T_unk - T_f)).toFixed(0);
-        let d3 = (c_unk / 2).toFixed(0);
+        let c_x = ((m_w * c_w * (T_f - T_w)) / (m_x * (T_x - T_f))).toFixed(0);
+        let d1 = ((m_x * c_w * (T_f - T_w)) / (m_w * (T_x - T_f))).toFixed(0);
+        let d2 = (4186 * (T_f - T_w) / (T_x - T_f)).toFixed(0);
+        let d3 = (c_x / 2).toFixed(0);
         return {
-            q: `A \\( ${m_unk} \\text{ kg} \\) unknown metal \\( x \\) at \\( ${T_unk} \\, ^\\circ\\text{C} \\) is dropped into \\( ${m_w} \\text{ kg} \\) of water at \\( ${T_w} \\, ^\\circ\\text{C} \\). The final temperature is \\( ${T_f} \\, ^\\circ\\text{C} \\). Find the specific heat of the metal. \\( (c_{\\text{water}} = 4186 \\text{ J/kg}\\cdot^\\circ\\text{C}) \\)`,
-            options: [`\\( ${c_unk} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d1} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d2} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d3} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`], answer: 0,
-            feedback: `\\( m_x c_x (T_i - T_f) = m_w c_w (T_f - T_w) \\Rightarrow (${m_unk} \\text{ kg})c_x(${T_unk} \\, ^\\circ\\text{C} - ${T_f} \\, ^\\circ\\text{C}) = (${m_w} \\text{ kg})(4186 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(${T_f} \\, ^\\circ\\text{C} - ${T_w} \\, ^\\circ\\text{C}) \\Rightarrow c_x = ${c_unk} \\text{ J/(kg}\\cdot^\\circ\\text{C}) \\)`
+            q: `A \\( ${m_x} \\text{ kg} \\) unknown metal \\( x \\) at \\( ${T_x} \\, ^\\circ\\text{C} \\) is dropped into \\( ${m_w} \\text{ kg} \\) of water at \\( ${T_w} \\, ^\\circ\\text{C} \\). The final temperature is \\( ${T_f} \\, ^\\circ\\text{C} \\). Find the specific heat of the metal. \\( (c_{\\text{water}} = 4186 \\text{ J/kg}\\cdot^\\circ\\text{C}) \\)`,
+            options: [`\\( ${c_x} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d1} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d2} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`, `\\( ${d3} \\text{ J/kg}\\cdot^\\circ\\text{C} \\)`], answer: 0,
+            feedback: `\\( m_x c_x (T_i - T_f) = m_w c_w (T_f - T_w) \\Rightarrow (${m_x} \\text{ kg})c_x(${T_x} \\, ^\\circ\\text{C} - ${T_f} \\, ^\\circ\\text{C}) = (${m_w} \\text{ kg})(4186 \\text{ J/(kg}\\cdot^\\circ\\text{C}))(${T_f} \\, ^\\circ\\text{C} - ${T_w} \\, ^\\circ\\text{C}) \\Rightarrow c_x = ${c_x} \\text{ J/(kg}\\cdot^\\circ\\text{C}) \\)`
         };
     },
     function() {
@@ -732,13 +692,14 @@ document.getElementById('start-btn').addEventListener('click', (e) => {
 document.getElementById('submit-name-btn').addEventListener('click', () => {
     studentName = studentNameInput.value.trim() || "Nameless Traveler";
     
-    // Audio Crossfade: Intro Out -> Aura In (Reduced to 0.05 volume)
-    fadeAudio(audioIntro, 0, 1000);
-    setTimeout(() => fadeAudio(audioAura, 0.05, 1000, 0), 1000);
-    
+    // Increment ONLY when starting a fresh quiz session
     attempts++;
     localStorage.setItem('hsr_quiz_attempts', attempts.toString());
-    attemptDisplays.forEach(el => el.innerText = attempts);
+    updateAttemptDisplays(attempts);
+    
+    // Audio Crossfade: Intro Out -> Aura In
+    forcePause(audioIntro);
+    forcePlay(audioAura, 0.05);
     
     nameDialog.classList.add('hidden');
     startQuiz();
@@ -851,8 +812,8 @@ function endQuiz() {
     endTime = new Date();
     
     // Audio Crossfade: Aura Out -> Intro In (at 1:58)
-    fadeAudio(audioAura, 0, 1500);
-    setTimeout(() => fadeAudio(audioIntro, 0.25, 1500, 118), 1000);
+    forcePause(audioAura);
+    forcePlay(audioIntro, 0.25, 118);
     
     switchScreen(screens.question, screens.score);
     
@@ -897,9 +858,8 @@ document.getElementById('restart-btn').addEventListener('click', () => {
     isDebugMode = false;
     document.getElementById('debug-controls').classList.add('hidden');
     switchScreen(screens.score, screens.main);
-    fadeAudio(audioIntro, 0, 1000);
     
-    attemptDisplays.forEach(el => el.innerText = attempts + 1);
+    updateAttemptDisplays(attempts + 1);
     
-    setTimeout(() => fadeAudio(audioIntro, 0.25, 1000, 51), 1000);
+    forcePlay(audioIntro, 0.25, 51);
 });
