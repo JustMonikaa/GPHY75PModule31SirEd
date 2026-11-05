@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flame-Chaser's Path: Thermal Physics</title>
+    <title>Flame-Chaser's Path: Thermodynamics</title>
     <link rel="stylesheet" href="style.css">
     <!-- MathJax Configuration -->
     <script>
@@ -43,7 +43,7 @@
         </button>
     </div>
 
-    <!-- Audio Elements (Force unmuted autoplay) -->
+    <!-- Audio Elements -->
     <audio id="audio-intro" src="intro.mp3" loop preload="auto" autoplay></audio>
     <audio id="audio-aura" src="aura.mp3" loop preload="auto"></audio>
     <audio id="audio-static" src="static.mp3" loop preload="auto"></audio>
@@ -59,15 +59,20 @@
         <div id="aha-terminal"></div>
         <div id="aha-input-container" class="hidden">
             <span class="prompt">Do you believe Aha was here? [Y/N] </span>
-            <span id="aha-input-display" class="aha-green"></span>
+            <input type="text" id="aha-input" maxlength="1" autocomplete="off" autofocus>
         </div>
+    </div>
+
+    <!-- NEWS TICKER -->
+    <div id="news-ticker-container" class="hidden">
+        <div id="news-ticker-text">BREAKING NEWS: The Aeon of Elation, Aha, is now identified to be involved with the events happening in Planarcadia. Some reliable news from reputable source claims that Aha the Elation was able to make the other Aeons to be involved in Planarcadia's affairs. The IPC is warning the AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA Hey hey hey don't be mean. I'm just trying to help you know. If I'm a bad Aeon like Xipe, I would have just left Ouroboros munching the Universe. And besides, Akivili approves and helps me and you people love him right? ... Right?</div>
     </div>
 
     <!-- MAIN SCREEN -->
     <div id="main-screen" class="screen active">
         <div class="book-cover">
             <div class="attempts-badge">Cycle: <span class="attempt-display">0</span></div>
-            <h1 class="glow-text">Flame-Chaser's Path:<br>Thermal Physics</h1>
+            <h1 class="glow-text">Flame-Chaser's Path:<br>Thermodynamics</h1>
             <button id="start-btn" class="hsr-btn">Begin Trial</button>
         </div>
     </div>
