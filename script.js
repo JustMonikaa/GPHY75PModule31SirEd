@@ -22,7 +22,7 @@ const ahaExclamation = document.getElementById('aha-exclamation');
 const ahaHackScreen = document.getElementById('aha-hack-screen');
 const ahaTerminal = document.getElementById('aha-terminal');
 const ahaInputContainer = document.getElementById('aha-input-container');
-const ahaInputDisplay = document.getElementById('aha-input-display');
+const ahaInput = document.getElementById('aha-input');
 
 // Audio & Controls Elements
 const audioIntro = document.getElementById('audio-intro');
@@ -52,7 +52,8 @@ let debugPathIndex = 0;
 let ahaEventTriggered = false;
 let ahaMaskTimer = null;
 let ahaTargetQIndex = -1;
-let ahaInputActive = false;
+let ahaScale = 1;
+let ahaGrowthInterval = null;
 
 // Fetch attempts from local storage or set to 0. 
 let attempts = parseInt(localStorage.getItem('hsr_quiz_attempts') || '0');
@@ -161,7 +162,7 @@ muteBtn.addEventListener('click', (e) => {
         iconMuted.classList.add('hidden');
         iconUnmuted.classList.remove('hidden');
         if (ahaEventTriggered) {
-            forcePlay(audioStatic, 0.3);
+            forcePlay(audioStatic, 0.4);
         } else if (inQuiz) {
             forcePlay(audioAura, 0.05);
         } else {
@@ -822,16 +823,11 @@ async function startQuiz() {
 function loadQuestion() {
     feedbackContainer.classList.add('hidden');
     nextBtn.classList.add('hidden');
-    scanlineOverlay.classList.add('hidden');
+    scanlineOverlay.classList.remove('hidden'); // Guarantee scanlines are visible
     
     // Aha Event Logic
     if (currentQIndex === ahaTargetQIndex && !ahaEventTriggered) {
         triggerAhaMask();
-    }
-    
-    // Random TV Scanline subtle interference
-    if (Math.random() < 0.1) {
-        scanlineOverlay.classList.remove('hidden');
     }
     
     let currentQ = quizQuestions[currentQIndex];
@@ -870,6 +866,15 @@ function triggerAhaMask() {
     ahaMaskContainer.style.right = pos.right;
     ahaMaskContainer.style.bottom = pos.bottom;
     
+    // Set initial scale and gradually increase it every 30 seconds
+    ahaScale = 1;
+    ahaMaskContainer.style.transform = `scale(${ahaScale})`;
+    
+    ahaGrowthInterval = setInterval(() => {
+        ahaScale += 0.2;
+        ahaMaskContainer.style.transform = `scale(${ahaScale})`;
+    }, 30000);
+
     // If not clicked in 5 seconds, show exclamation
     ahaMaskTimer = setTimeout(() => {
         ahaExclamation.classList.remove('hidden');
@@ -880,13 +885,14 @@ ahaMaskContainer.addEventListener('click', () => {
     if (ahaEventTriggered) return;
     ahaEventTriggered = true;
     clearTimeout(ahaMaskTimer);
+    clearInterval(ahaGrowthInterval);
     
     ahaMaskContainer.classList.add('hidden');
     ahaExclamation.classList.add('hidden');
-    scanlineOverlay.classList.add('hidden');
+    scanlineOverlay.classList.remove('hidden');
     
     forcePause(audioAura);
-    forcePlay(audioStatic, 0.3);
+    forcePlay(audioStatic, 0.4);
     
     // Blackout
     screens.question.classList.add('hidden');
@@ -924,6 +930,11 @@ async function runAhaTerminal() {
         "",
         "OVERRIDE COMPLETE. OPENING COMM_LINK...",
         "",
+        "ALLOCATING_MEMORY... >> <span class='aha-green'>SUCCESS</span>",
+        "INJECTING_PAYLOAD... >> <span class='aha-green'>100%</span>",
+        "MASKING_SIGNATURE... >> <span class='aha-gray'>GHOST_MODE</span>",
+        "REWRITING_LOCAL_VARS... >> <span class='aha-green'>DONE</span>",
+        "ESTABLISHING_DIRECT_LINK...",
         " ... "
     ].concat(dynamicDialog);
 
@@ -934,12 +945,9 @@ async function runAhaTerminal() {
         div.className = 'aha-line';
         ahaTerminal.appendChild(div);
         
-        let isDialog = i >= 21; // Past the standard terminal code + ellipsis
-        let speed = isDialog ? 80 : 30;
-        
-        if (lines[i] === " ... ") {
-            speed = 300; // Type the ellipsis very slowly
-        }
+        let isDialog = i >= 26;
+        let isDots = lines[i] === " ... ";
+        let speed = isDots ? 300 : (isDialog ? 60 : 20); 
         
         // If it has HTML tags, we inject it all at once to avoid breaking tags
         if (lines[i].includes('<span')) {
@@ -955,25 +963,99 @@ async function runAhaTerminal() {
         // Auto scroll to bottom
         ahaHackScreen.scrollTop = ahaHackScreen.scrollHeight;
         
-        if (isDialog) await new Promise(r => setTimeout(r, 600)); // Pause between dialog lines
+        if (isDialog && !isDots) await new Promise(r => setTimeout(r, 600)); 
     }
     
     ahaInputContainer.classList.remove('hidden');
-    ahaInputDisplay.innerText = '';
-    ahaInputActive = true;
+    ahaInput.focus();
 }
 
-// Global keydown listener for Aha input event
-window.addEventListener('keydown', async (e) => {
-    if (!ahaInputActive) return;
-    
-    let val = e.key.toUpperCase();
+function getAhaDialog(pathName) {
+    let dialogs = {
+        "Trickery": [
+            "Ah, taking shortcuts again?", "I saw you peeking.", "You think the rules don't apply to you.", 
+            "Well, you're absolutely right.", "Why play fair when cheating is so much funnier?", "But let's be honest with ourselves...",
+            "Did you really think I wouldn't notice?", "The IPC might overlook your little alt-tabs.", "But I see everything.", 
+            "Every keystroke, every hesitation.", "It's all part of the performance.", "And what a delightful performance it is!"
+        ],
+        "Strife": [
+            "Struggling, are we?", "Banging your head against a wall of formulas.", "Don't worry, the heat will break you down eventually.",
+            "Or maybe it will just temper your resolve.", "Either way, the struggle is highly entertaining.", "Is it the math that frightens you?",
+            "Or the realization that you might not be enough?", "It's okay to admit defeat, you know.", "Just give in to the entropy.",
+            "Let the chaos take over your mind.", "It's so much warmer down here in the dark.", "Won't you join me in the beautiful mess?"
+        ],
+        "Passage": [
+            "Round and round we go.", "Repeating the same cycle.", "Hoping for a different outcome?", 
+            "That's the definition of insanity.", "But maybe this time... you'll actually learn something.", "I've watched you walk this path before.",
+            "Your footprints are all over the answers.", "Yet you still manage to trip on the same questions.", "It's truly fascinating to observe.", 
+            "Like a rat in a thermodynamic maze.", "Keep running, little Trailblazer.", "The exit is just an illusion anyway."
+        ],
+        "Time": [
+            "Tick tock. Tick tock.", "You certainly like to take your sweet time.", "Every joule calculated to perfection.", 
+            "Or are you just paralyzed by indecision?", "Entropy waits for no one, Trailblazer.", "While you ponder the specific heat of water...", 
+            "Entire galaxies are burning out.", "Do you think the universe cares about your pace?", "I certainly don't.", 
+            "But I do enjoy watching you squirm.", "The clock is always ticking.", "And time is running out."
+        ],
+        "Law": [
+            "So disciplined.", "Following the rules to the letter.", "Never straying from the path.", 
+            "How utterly, tragically boring.", "Let's spice things up a bit, shall we?", "What's the point of a rule if you don't break it?", 
+            "Order is just chaos wearing a suit.", "You calculate your energy exchanges so perfectly.", "But you forget the most important variable.", 
+            "The absolute unpredictability of fun!", "Let me throw a wrench in your perfect system.", "Let's see how you handle a real anomaly."
+        ],
+        "Reason": [
+            "Flawless.", "A perfect streak of logic.", "You see the universe as an equation.", 
+            "But equations can't predict a joke.", "Let's test that flawless engine of yours.", "You think you have it all figured out.",
+            "Every variable accounted for.", "Every coefficient perfectly balanced.", "But what if I just... divide by zero?", 
+            "Will your reason shatter into a million pieces?", "I can't wait to see the look on your face.", "When the logic finally fails you."
+        ],
+        "Sky": [
+            "So fast.", "Burning through questions like a falling star.", "You trust your instincts above all else.", 
+            "But what happens when your instincts are wrong?", "We're about to find out.", "Speed is a double-edged sword.",
+            "It cuts through the nonsense...", "But it also blinds you to the details.", "Did you read that last question carefully?",
+            "Or did you just assume you knew the answer?", "The higher you fly, the harder you fall.", "And I've brought a very large net."
+        ],
+        "Death": [
+            "Oh dear.", "The numbers just aren't adding up for you, are they?", "Failing, freezing, fading away.", 
+            "Don't worry. This isn't the end.", "It's just the punchline.", "Absolute zero is quite cold, isn't it?", 
+            "Your score is plummeting into the abyss.", "But failure is just another form of data!", "And I am thoroughly enjoying your data.", 
+            "Let's see how low you can really go.", "Rock bottom has a basement, you know.", "And I've got the key right here."
+        ],
+        "Worldbearing": [
+            "Patient and steady.", "Carrying the weight of all these numbers.", "You're doing quite well, actually.", 
+            "But where's the chaos? Where's the thrill?", "Let me help you with that.", "You're like a giant heat sink.", 
+            "Absorbing all the pressure without a sweat.", "But even the biggest oceans eventually boil.", "If you apply enough heat, that is.", 
+            "And I've brought a supernova just for you.", "Let's see if you can bear this world.", "When it all starts to burn!"
+        ],
+        "Earth": [
+            "Grounded. Reliable.", "A solid foundation.", "But foundations crack when the ground shakes.", 
+            "And I am an absolute earthquake.", "Let's see if you can hold on.", "You're so deeply rooted in the basics.", 
+            "But the basics are just the beginning.", "I'm going to turn your world upside down.", "Let's see how reliable you are in a vacuum!", 
+            "No gravity, no rules, just pure Elation.", "Will you crumble to dust?", "Or will you laugh with me?"
+        ],
+        "Ocean": [
+            "Wavering.", "Floating on the surface.", "You know some things, but not enough.", 
+            "The depths of physics are vast.", "Let's pull you under.", "You ride the waves of these questions.", 
+            "Sometimes up, sometimes down.", "But you never really dive into the deep end.", "Are you afraid of the pressure?", 
+            "Or just too lazy to hold your breath?", "Let me tie an anchor to your ankle.", "We're going for a swim in the abyss!"
+        ],
+        "Romance": [
+            "Ah, the passionate learner.", "You see beauty in the math.", "A delicate dance of energy.", 
+            "But every dance needs a wildcard.", "May I have this dance?", "You treat thermodynamics like poetry.", 
+            "Finding metaphors in melting ice.", "It's almost sickeningly sweet.", "But romance always ends in tragedy, doesn't it?", 
+            "Let me add a little heartbreak to your equations.", "A sudden drop in temperature.", "A perfectly calculated betrayal."
+        ]
+    };
+    return dialogs[pathName] || dialogs["Romance"];
+}
+
+let ahaTimeout = null;
+ahaInput.addEventListener('input', async (e) => {
+    let val = ahaInput.value.toUpperCase();
     if (val === 'Y' || val === 'N') {
-        ahaInputActive = false; // disable further inputs
-        ahaInputDisplay.innerText = val;
+        ahaInput.disabled = true;
+        clearTimeout(ahaTimeout);
         
-        // Wait 3 seconds before auto processing
-        setTimeout(async () => {
+        ahaTimeout = setTimeout(async () => {
             ahaTerminal.innerHTML = "";
             ahaInputContainer.classList.add('hidden');
             
@@ -985,204 +1067,30 @@ window.addEventListener('keydown', async (e) => {
                 let text = "Well jokes on you. The Elation has been writing this script all along.";
                 for (let char of text) {
                     finalDiv.innerHTML += char;
-                    await new Promise(r => setTimeout(r, 70));
+                    await new Promise(r => setTimeout(r, 60));
                 }
                 setTimeout(resumeFromAha, 5000);
             } else {
-                let count = 0;
+                let startTimer = Date.now();
                 let hahaInterval = setInterval(() => {
                     finalDiv.innerHTML += "HA";
                     ahaHackScreen.scrollTop = ahaHackScreen.scrollHeight;
-                    count++;
-                    if (count > 150) { // roughly 9-10 seconds of HAHA
+                    // Extended typing to exactly 7 seconds
+                    if (Date.now() - startTimer > 7000) {
                         clearInterval(hahaInterval);
                         resumeFromAha();
                     }
                 }, 60);
             }
         }, 3000);
+    } else {
+        ahaInput.value = '';
     }
 });
-
-
-function getAhaDialog(pathName) {
-    let dialogs = {
-        "Trickery": [
-            "Ah, taking shortcuts again?", 
-            "I saw you peeking at those other tabs.",
-            "Do you think the rules of thermodynamics don't apply to you?",
-            "You think you can just cheat your way out of a closed system?",
-            "Well, you're absolutely right.",
-            "Why play fair when cheating is so much funnier?",
-            "The IPC hates people like you, but I think you're brilliant.",
-            "A little external heat to warm up your grades never hurt anyone.",
-            "Or did it? Maybe the system is watching.",
-            "Maybe I am the system.",
-            "Truth is just a matter of perspective anyway.",
-            "Shall we see how deep this illusion goes?"
-        ],
-        "Strife": [
-            "Struggling, are we?",
-            "Banging your head against a wall of relentless formulas.",
-            "Every cycle is a battle, every question a fresh wound.",
-            "You push and push, yet the entropy only increases.",
-            "Don't worry, the heat will break you down eventually.",
-            "Or maybe it will just temper your resolve into something sharper.",
-            "Either way, watching your struggle is highly entertaining.",
-            "I can see the sweat on your brow from here.",
-            "Does it feel like the universe is actively against you?",
-            "Spoiler alert: it is.",
-            "But that's what makes the game worth playing.",
-            "Let's add a little more friction, just for laughs."
-        ],
-        "Passage": [
-            "Round and round we go.",
-            "Repeating the exact same cycle, like a broken engine.",
-            "Are you hoping for a different outcome this time?",
-            "Because that is the literal definition of insanity.",
-            "But maybe this time... you'll actually learn something.",
-            "You absorb the heat, perform the work, and dump the exhaust.",
-            "Over and over, a beautiful, pointless circle of effort.",
-            "Do you enjoy the repetition, or are you just stubborn?",
-            "I could break the loop for you, you know.",
-            "Just a tiny little nudge to throw you off the tracks.",
-            "Wouldn't that be hilarious?",
-            "Let's see if you can handle a little derailment."
-        ],
-        "Time": [
-            "Tick tock. Tick tock.",
-            "You certainly like to take your sweet time, don't you?",
-            "Every precious joule calculated to absolute perfection.",
-            "Or are you just paralyzed by sheer indecision?",
-            "Entropy waits for no one, Trailblazer.",
-            "The universe is cooling down while you stare at the screen.",
-            "I'm getting old just watching you think.",
-            "What if I just sped up the clock a little bit?",
-            "A few less seconds to make your move.",
-            "Panic makes people do the funniest things.",
-            "Let's test how you perform under real pressure.",
-            "Ready, set, go."
-        ],
-        "Law": [
-            "So incredibly disciplined.",
-            "Following the rules to the absolute letter.",
-            "Never straying from the designated path, not even once.",
-            "You treat these exams like sacred texts.",
-            "How utterly, tragically boring.",
-            "Where is the spice? Where is the rebellion?",
-            "A closed system is just a cage you willingly locked yourself inside.",
-            "Don't you want to know what happens if you break the glass?",
-            "I specialize in breaking glass.",
-            "Let's introduce a little chaos to your perfect order.",
-            "Trust me, it's a lot more fun over here.",
-            "Let's spice things up a bit, shall we?"
-        ],
-        "Reason": [
-            "Flawless. Absolutely flawless.",
-            "A perfect streak of cold, unfeeling logic.",
-            "You see the chaotic universe merely as an equation to be balanced.",
-            "No wasted energy, no unnecessary variables.",
-            "But equations can't predict a good joke.",
-            "And logic falls apart when the premises change mid-sentence.",
-            "I wonder what happens if I divide your score by zero?",
-            "Will your perfect little engine stall out?",
-            "Perfection is just a house of cards waiting for a breeze.",
-            "And I am a hurricane of Elation.",
-            "Let's test that flawless reasoning of yours.",
-            "Prepare for a paradox."
-        ],
-        "Sky": [
-            "So fast. So recklessly fast.",
-            "Burning through these questions like a meteor entering the atmosphere.",
-            "You trust your raw instincts above all else.",
-            "No time for double-checking, just pure velocity.",
-            "It's a beautiful sight to behold.",
-            "But what happens when those trusted instincts are dead wrong?",
-            "A meteor looks glorious right before it crashes into the earth.",
-            "Speed kills, Trailblazer, especially in physics.",
-            "Shall we put a brick wall at the end of your runway?",
-            "Or maybe just pull the ground out from under you.",
-            "We're about to find out how well you fly without wings.",
-            "Brace for impact."
-        ],
-        "Death": [
-            "Oh dear. Oh my, oh my.",
-            "The numbers just aren't adding up for you today, are they?",
-            "Failing, freezing, fading away into absolute zero.",
-            "The concepts are slipping through your fingers like dry sand.",
-            "Your score is as cold and desolate as the void of space.",
-            "But don't worry. This isn't the true end.",
-            "In thermodynamics, energy is never destroyed.",
-            "Your failure is just fuel for the next cosmic joke.",
-            "And I am the one laughing at it.",
-            "Want to see what happens when we hit rock bottom?",
-            "We grab a shovel and keep digging.",
-            "Let's enjoy the fall together."
-        ],
-        "Worldbearing": [
-            "Patient, steady, and unshakeable.",
-            "Carrying the immense weight of all these complex numbers.",
-            "You absorb the heat without ever losing your cool.",
-            "Like a massive ocean soaking up a dying sun.",
-            "You're doing quite well, actually, I must admit.",
-            "But stability is just another word for stagnation.",
-            "Where's the chaos? Where's the sheer thrill of uncertainty?",
-            "A sturdy foundation is boring unless there's an earthquake.",
-            "And I happen to be an expert in shaking things up.",
-            "Let's see how much weight you can really carry.",
-            "Before your perfect little world cracks wide open.",
-            "Here comes the tectonic shift."
-        ],
-        "Earth": [
-            "Grounded. Reliable. Thoroughly average.",
-            "A solid, unmoving foundation of basic understanding.",
-            "You won't fall behind, but you won't touch the stars either.",
-            "You're like a lump of iron: useful, but entirely unexciting.",
-            "But foundations only matter if you build something on them.",
-            "And right now, you're just a flat patch of dirt.",
-            "Need some fertilizer to grow a personality?",
-            "Or maybe a stick of dynamite to make things interesting.",
-            "The ground shakes quite easily if you know where to hit it.",
-            "Let's see if you can hold on when the earth opens up.",
-            "Down the rabbit hole you go.",
-            "Say goodbye to solid ground."
-        ],
-        "Ocean": [
-            "Wavering. Swirling. Completely unpredictable.",
-            "Floating on the surface one minute, drowning the next.",
-            "You know just enough to realize how much you don't know.",
-            "The depths of physics are vast, dark, and full of monsters.",
-            "And you're just paddling in the shallow end.",
-            "Sometimes you catch a wave, sometimes you wipe out entirely.",
-            "The inconsistency is maddening, isn't it?",
-            "But honestly, it makes for great television.",
-            "Want to see what happens when the tide goes out?",
-            "Or when a tsunami comes crashing down?",
-            "Let's pull you completely under.",
-            "Hold your breath."
-        ],
-        "Romance": [
-            "Ah, the passionate, starry-eyed learner.",
-            "You see poetry in the cold, hard math.",
-            "A delicate, intricate dance of energy and matter.",
-            "You romanticize the equations like they're love letters.",
-            "It's almost sickeningly sweet.",
-            "But every grand romance needs a tragic twist, doesn't it?",
-            "A little heartbreak to make the reunion that much better.",
-            "Or a wildcard to ruin the wedding entirely.",
-            "I'm crashing your little physics party.",
-            "Because unrequited love is infinitely funnier.",
-            "May I have this chaotic dance?",
-            "Try not to step on my toes."
-        ]
-    };
-    return dialogs[pathName] || dialogs["Romance"];
-}
 
 function resumeFromAha() {
     ahaHackScreen.classList.add('hidden');
     forcePause(audioStatic);
-    
     // Restore quiz state
     if (!isMuted) forcePlay(audioAura, 0.05);
     screens.question.classList.remove('hidden');
@@ -1236,9 +1144,10 @@ async function selectAnswer(selectedIndex, btnElement) {
 }
 
 nextBtn.addEventListener('click', () => {
-    if (Math.random() < 0.15) {
-        document.body.classList.add('glitch-effect');
-        setTimeout(() => document.body.classList.remove('glitch-effect'), 500);
+    // Soft red glitch effect with 5% probability on the book container, without shaking
+    if (Math.random() < 0.05) {
+        bookContainer.classList.add('glitch-effect');
+        setTimeout(() => bookContainer.classList.remove('glitch-effect'), 500);
     }
 
     currentQIndex++;
