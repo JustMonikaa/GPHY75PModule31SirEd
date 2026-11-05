@@ -860,6 +860,26 @@ function loadQuestion() {
         triggerAhaMask();
     }
     
+    // News Ticker logic for 5th question (index 4)
+    if (currentQIndex === 4) {
+        let tickerContainer = document.getElementById('news-ticker-container');
+        let tickerText = document.getElementById('news-ticker-text');
+        
+        if (tickerContainer && tickerText) {
+            tickerContainer.classList.remove('hidden');
+            setTimeout(() => {
+                tickerContainer.style.opacity = '1';
+                tickerText.style.animation = 'tickerScroll 35s linear forwards';
+            }, 50);
+
+            // Fade out after 35 seconds when text is completely off-screen
+            setTimeout(() => {
+                tickerContainer.style.opacity = '0';
+                setTimeout(() => tickerContainer.classList.add('hidden'), 1500);
+            }, 35000);
+        }
+    }
+    
     let currentQ = quizQuestions[currentQIndex];
     if (qNum) qNum.innerText = `Question ${currentQIndex + 1} of ${quizQuestions.length}`;
     if (qText) qText.innerHTML = currentQ.q;
@@ -921,7 +941,11 @@ if (ahaMaskContainer) {
         
         ahaMaskContainer.classList.add('hidden');
         if (ahaExclamation) ahaExclamation.classList.add('hidden');
-        if (scanlineOverlay) scanlineOverlay.classList.remove('hidden'); // Persistent during Aha
+        
+        if (scanlineOverlay) {
+            scanlineOverlay.classList.remove('hidden'); 
+            scanlineOverlay.classList.add('aha-active'); // Boost scanline visibility
+        }
         
         forcePause(audioAura);
         forcePlay(audioStatic, 0.4);
@@ -1069,14 +1093,12 @@ function handleAhaInput(val) {
     }
 }
 
-// 1. Attach to text input if it exists
 if (ahaInput) {
     ahaInput.addEventListener('input', () => {
         handleAhaInput(ahaInput.value);
     });
 }
 
-// 2. Global fallback so it works even if the input element is deleted from HTML
 window.addEventListener('keydown', (e) => {
     if (ahaHackScreen && !ahaHackScreen.classList.contains('hidden') && !ahaResolved) {
         if (e.key.length === 1) { 
@@ -1087,7 +1109,10 @@ window.addEventListener('keydown', (e) => {
 
 function resumeFromAha() {
     if (ahaHackScreen) ahaHackScreen.classList.add('hidden');
-    if (scanlineOverlay) scanlineOverlay.classList.add('hidden'); // Clear scanline upon returning
+    if (scanlineOverlay) {
+        scanlineOverlay.classList.remove('aha-active'); // Un-boost the scanline
+        scanlineOverlay.classList.add('hidden');
+    }
     forcePause(audioStatic);
     
     if (!isMuted) forcePlay(audioAura, 0.05);
@@ -1153,6 +1178,13 @@ async function selectAnswer(selectedIndex, btnElement) {
 
 if (nextBtn) {
     nextBtn.addEventListener('click', () => {
+        
+        // Increase Aha Mask size when ignored on clicking Next Question
+        if (ahaMaskContainer && !ahaMaskContainer.classList.contains('hidden') && !ahaEventTriggered) {
+            ahaScale += 0.15;
+            ahaMaskContainer.style.transform = `scale(${ahaScale})`;
+        }
+        
         if (Math.random() < 0.05 && bookContainer) {
             bookContainer.classList.add('glitch-effect');
             setTimeout(() => bookContainer.classList.remove('glitch-effect'), 500);
@@ -1160,17 +1192,22 @@ if (nextBtn) {
 
         currentQIndex++;
         if (currentQIndex < quizQuestions.length) {
+            
+            // Slow wipe to left simulating page turn
             if (bookContainer) {
-                bookContainer.style.opacity = 0;
-                bookContainer.style.transform = 'translateY(20px)';
+                bookContainer.style.animation = "none";
+                void bookContainer.offsetWidth; // Trigger reflow to restart animation
+                bookContainer.style.animation = "pageTurnOut 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards";
             }
+            
             setTimeout(() => {
                 loadQuestion();
                 if (bookContainer) {
-                    bookContainer.style.opacity = 1;
-                    bookContainer.style.transform = 'translateY(0)';
+                    bookContainer.style.animation = "none";
+                    void bookContainer.offsetWidth;
+                    bookContainer.style.animation = "pageTurnIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards";
                 }
-            }, 500);
+            }, 800);
         } else {
             endQuiz();
         }
