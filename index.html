@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flame-Chaser's Path: Thermodynamics</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- MathJax for LaTeX rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+    <!-- MAIN SCREEN -->
+    <div id="main-screen" class="screen active">
+        <div class="book-cover">
+            <h1>Flame-Chaser's Path:<br>Thermodynamics</h1>
+            <button id="start-btn" class="hsr-btn">Begin Trial</button>
+        </div>
+    </div>
+
+    <!-- NAME DIALOG OVERLAY -->
+    <div id="name-dialog" class="overlay hidden">
+        <div class="dialog-box">
+            <h2>Enter Your Designation</h2>
+            <input type="text" id="student-name" placeholder="Student Name" autocomplete="off">
+            <button id="submit-name-btn" class="hsr-btn">Submit</button>
+        </div>
+    </div>
+
+    <!-- QUESTION SCREEN -->
+    <div id="question-screen" class="screen hidden">
+        <div class="book-container">
+            <!-- Left Page -->
+            <div class="page left-page">
+                <div class="question-header">
+                    <span id="question-number">Question 1/X</span>
+                </div>
+                <div id="question-text">
+                    <!-- Question goes here -->
+                </div>
+            </div>
+            
+            <!-- Right Page -->
+            <div class="page right-page">
+                <div id="choices-container" class="choices-stack">
+                    <!-- Choices go here -->
+                </div>
+                
+                <div id="feedback-container" class="hidden">
+                    <h3>Explanation:</h3>
+                    <p id="feedback-text"></p>
+                </div>
+                
+                <div class="nav-container">
+                    <button id="next-btn" class="hsr-btn hidden">Next Question</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCORE SCREEN -->
+    <div id="score-screen" class="screen hidden">
+        <div class="score-card">
+            <h2>Your Flame-Chaser Path is</h2>
+            <h1 id="path-name" class="glow-text">Path Name</h1>
+            <h3 id="score-display">0 / 0</h3>
+            
+            <img id="path-logo" src="" alt="Path Logo">
+            
+            <div class="flavor-text-container">
+                <p id="flavor-text"></p>
+            </div>
+            
+            <button id="restart-btn" class="hsr-btn" style="margin-top: 20px;">Return to the Start</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
