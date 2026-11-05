@@ -12,6 +12,14 @@ const qNum = document.getElementById('question-number');
 const feedbackContainer = document.getElementById('feedback-container');
 const feedbackText = document.getElementById('feedback-text');
 const nextBtn = document.getElementById('next-btn');
+const bookContainer = document.querySelector('.book-container');
+
+// Audio Elements
+const audioIntro = document.getElementById('audio-intro');
+const audioAura = document.getElementById('audio-aura');
+const muteBtn = document.getElementById('mute-btn');
+const iconMuted = document.getElementById('icon-muted');
+const iconUnmuted = document.getElementById('icon-unmuted');
 
 // Tracking variables
 let studentName = '';
@@ -22,9 +30,105 @@ let score = 0;
 let currentQIndex = 0;
 let quizQuestions = [];
 let inQuiz = false;
+let isMuted = false;
+let audioInitialized = false;
 let attempts = parseInt(localStorage.getItem('hsr_quiz_attempts') || '0');
 
-// Conceptual Questions from Source
+// Generate background ethereal glitter
+const glitterContainer = document.getElementById('glitter-container');
+function createGlitter() {
+    let star = document.createElement('div');
+    star.className = 'glitter-particle';
+    star.style.left = `${Math.random() * 100}vw`;
+    star.style.top = `${Math.random() * 100}vh`;
+    let size = Math.random() * 4 + 2;
+    star.style.width = `${size}px`;
+    star.style.height = `${size}px`;
+    star.style.animation = `floatParticle ${Math.random() * 5 + 3}s ease-in-out infinite`;
+    star.style.animationDelay = `${Math.random() * 5}s`;
+    glitterContainer.appendChild(star);
+}
+for (let i = 0; i < 70; i++) createGlitter();
+
+// --- AUDIO SYSTEM ---
+function fadeAudio(audioElement, targetVolume, duration, startAt = null) {
+    if (startAt !== null) {
+        audioElement.currentTime = startAt;
+        let playPromise = audioElement.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(e => console.log("Audio autoplay prevented"));
+        }
+    }
+    
+    let startVol = audioElement.volume;
+    let diff = targetVolume - startVol;
+    let steps = 20;
+    let stepTime = duration / steps;
+    let currentStep = 0;
+    
+    let interval = setInterval(() => {
+        currentStep++;
+        let newVol = startVol + (diff * (currentStep / steps));
+        if (newVol < 0) newVol = 0;
+        if (newVol > 1) newVol = 1;
+        audioElement.volume = newVol;
+        
+        if (currentStep >= steps) {
+            clearInterval(interval);
+            if (targetVolume === 0) audioElement.pause();
+        }
+    }, stepTime);
+}
+
+// Initialize audio on first user interaction anywhere
+document.body.addEventListener('click', () => {
+    if (audioInitialized) return;
+    audioInitialized = true;
+    isMuted = false;
+    iconMuted.classList.add('hidden');
+    iconUnmuted.classList.remove('hidden');
+    
+    audioIntro.volume = 0;
+    fadeAudio(audioIntro, 0.25, 1000, 51);
+}, { once: true });
+
+// Persistent Mute/Unmute Toggle
+muteBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // prevent triggering the body click
+    isMuted = !isMuted;
+    if (isMuted) {
+        iconMuted.classList.remove('hidden');
+        iconUnmuted.classList.add('hidden');
+        audioIntro.muted = true;
+        audioAura.muted = true;
+    } else {
+        iconMuted.classList.add('hidden');
+        iconUnmuted.classList.remove('hidden');
+        audioIntro.muted = false;
+        audioAura.muted = false;
+        if (!audioInitialized) {
+            audioInitialized = true;
+            audioIntro.volume = 0;
+            fadeAudio(audioIntro, 0.25, 1000, 51);
+        }
+    }
+});
+
+// --- SCIENTIFIC NOTATION FORMATTER ---
+// Intercepts strings like 6.09e-2 and outputs exactly 6.09 \times 10^{-2}
+function sci(val) {
+    let str = Number(val).toExponential(2);
+    if (str.includes('e')) {
+        let parts = str.split('e');
+        let base = parts[0];
+        let exp = parseInt(parts[1], 10);
+        if (exp === 0) return base; // e.g. 5.00e+0 -> 5.00
+        return `${base} \\times 10^{${exp}}`;
+    }
+    return str;
+}
+
+// --- CONCEPTUAL QUESTIONS ---
 const rawConceptual = [
     {
         q: "Ashley has two freezers in her laboratory. Inside freezer A, the temperature is \\( 0 \\, ^\\circ\\text{F} \\) and inside freezer B the temperature is \\( 0 \\, ^\\circ\\text{C} \\). Which one of the following statements about these freezers is true?",
@@ -215,19 +319,6 @@ const rawConceptual = [
     }
 ];
 
-// Helper to shuffle arrays and map answers
-function shuffleProblem(prob) {
-    let opts = prob.options.map((text, idx) => ({ text, isCorrect: idx === prob.answer }));
-    opts.sort(() => Math.random() - 0.5);
-    let newAnsIdx = opts.findIndex(o => o.isCorrect);
-    return {
-        type: 'problem',
-        q: prob.q,
-        options: opts.map(o => o.text),
-        answer: newAnsIdx,
-        feedback: prob.feedback
-    };
-}
 function shuffleConceptual(prob) {
     let opts = prob.options.map((text, idx) => ({ text, isCorrect: idx === prob.answer }));
     opts.sort(() => Math.random() - 0.5);
@@ -240,18 +331,30 @@ function shuffleConceptual(prob) {
         feedback: prob.feedback
     };
 }
+function shuffleProblem(prob) {
+    let opts = prob.options.map((text, idx) => ({ text, isCorrect: idx === prob.answer }));
+    opts.sort(() => Math.random() - 0.5);
+    let newAnsIdx = opts.findIndex(o => o.isCorrect);
+    return {
+        type: 'problem',
+        q: prob.q,
+        options: opts.map(o => o.text),
+        answer: newAnsIdx,
+        feedback: prob.feedback
+    };
+}
 
-// 14 Problem Solving Generators (2 per topic)
+// --- GENERATORS USING sci() STRICTLY ---
 const generators = [
     // 1. Linear Expansion 1
     function() {
         let L0 = (Math.random()*10+5).toFixed(1);
         let a = (Math.random()*2+1).toFixed(1);
         let dT = Math.floor(Math.random()*50+20);
-        let ans = (L0 * a*1e-5 * dT).toExponential(2);
-        let d1 = (L0 * a*1e-4 * dT).toExponential(2);
-        let d2 = (L0 * a*1e-5 / dT).toExponential(2);
-        let d3 = (a*1e-5 * dT).toExponential(2);
+        let ans = sci(L0 * a*1e-5 * dT);
+        let d1 = sci(L0 * a*1e-4 * dT);
+        let d2 = sci(L0 * a*1e-5 / dT);
+        let d3 = sci(a*1e-5 * dT);
         return {
             q: `A steel beam has an initial length of \\( ${L0} \\text{ m} \\). The coefficient of linear expansion is \\( \\alpha = ${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1} \\). If the temperature increases by \\( ${dT} \\, ^\\circ\\text{C} \\), what is the change in the beam's length?`,
             options: [`\\( ${ans} \\text{ m} \\)`, `\\( ${d1} \\text{ m} \\)`, `\\( ${d2} \\text{ m} \\)`, `\\( ${d3} \\text{ m} \\)`], answer: 0,
@@ -264,9 +367,9 @@ const generators = [
         let a = (Math.random()*3+1).toFixed(1);
         let dL = (Math.random()*0.05+0.01).toFixed(3);
         let dT = (dL / (L0 * a*1e-5)).toFixed(1);
-        let d1 = (dL * L0 * a*1e-5).toExponential(2);
+        let d1 = sci(dL * L0 * a*1e-5);
         let d2 = (dL / (a*1e-5)).toFixed(1);
-        let d3 = (dL / L0).toExponential(2);
+        let d3 = sci(dL / L0);
         return {
             q: `A copper pipe of length \\( ${L0} \\text{ m} \\) expands by \\( ${dL} \\text{ m} \\). Given \\( \\alpha = ${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1} \\), what was the temperature change?`,
             options: [`\\( ${dT} \\, ^\\circ\\text{C} \\)`, `\\( ${d1} \\, ^\\circ\\text{C} \\)`, `\\( ${d2} \\, ^\\circ\\text{C} \\)`, `\\( ${d3} \\, ^\\circ\\text{C} \\)`], answer: 0,
@@ -278,10 +381,10 @@ const generators = [
         let V0 = (Math.random()*5+1).toFixed(2);
         let b = (Math.random()*5+2).toFixed(1);
         let dT = Math.floor(Math.random()*80+20);
-        let ans = (V0 * b*1e-4 * dT).toExponential(2);
-        let d1 = (V0 * b*1e-5 * dT).toExponential(2);
-        let d2 = (b*1e-4 * dT).toExponential(2);
-        let d3 = (V0 * b*1e-4 / dT).toExponential(2);
+        let ans = sci(V0 * b*1e-4 * dT);
+        let d1 = sci(V0 * b*1e-5 * dT);
+        let d2 = sci(b*1e-4 * dT);
+        let d3 = sci(V0 * b*1e-4 / dT);
         return {
             q: `A container holds \\( ${V0} \\text{ m}^3 \\) of liquid. The volume expansion coefficient of the liquid is \\( \\beta = ${b} \\times 10^{-4} \\, ^\\circ\\text{C}^{-1} \\). If heated by \\( ${dT} \\, ^\\circ\\text{C} \\), how much does the volume of the liquid increase?`,
             options: [`\\( ${ans} \\text{ m}^3 \\)`, `\\( ${d1} \\text{ m}^3 \\)`, `\\( ${d2} \\text{ m}^3 \\)`, `\\( ${d3} \\text{ m}^3 \\)`], answer: 0,
@@ -293,10 +396,10 @@ const generators = [
         let V0 = (Math.random()*10+5).toFixed(1);
         let a = (Math.random()*2+1).toFixed(1);
         let dT = Math.floor(Math.random()*60+10);
-        let ans = (V0 * 3 * a*1e-5 * dT).toExponential(2);
-        let d1 = (V0 * a*1e-5 * dT).toExponential(2);
-        let d2 = (V0 * Math.pow(a*1e-5, 3) * dT).toExponential(2);
-        let d3 = (3 * a*1e-5 * dT).toExponential(2);
+        let ans = sci(V0 * 3 * a*1e-5 * dT);
+        let d1 = sci(V0 * a*1e-5 * dT);
+        let d2 = sci(V0 * Math.pow(a*1e-5, 3) * dT);
+        let d3 = sci(3 * a*1e-5 * dT);
         return {
             q: `A solid metal sphere has an initial volume of \\( ${V0} \\text{ cm}^3 \\) and a linear expansion coefficient \\( \\alpha = ${a} \\times 10^{-5} \\, ^\\circ\\text{C}^{-1} \\). If the temperature increases by \\( ${dT} \\, ^\\circ\\text{C} \\), what is its change in volume?`,
             options: [`\\( ${ans} \\text{ cm}^3 \\)`, `\\( ${d1} \\text{ cm}^3 \\)`, `\\( ${d2} \\text{ cm}^3 \\)`, `\\( ${d3} \\text{ cm}^3 \\)`], answer: 0,
@@ -308,10 +411,10 @@ const generators = [
         let m = (Math.random()*4+1).toFixed(2);
         let c = 4186;
         let dT = Math.floor(Math.random()*50+10);
-        let ans = (m * c * dT).toExponential(2);
+        let ans = sci(m * c * dT);
         let d1 = (m * dT).toFixed(1);
-        let d2 = (m * c / dT).toExponential(2);
-        let d3 = (c * dT).toExponential(2);
+        let d2 = sci(m * c / dT);
+        let d3 = sci(c * dT);
         return {
             q: `How much heat is required to raise the temperature of \\( ${m} \\text{ kg} \\) of water by \\( ${dT} \\, ^\\circ\\text{C} \\)? \\( (c_{\\text{water}} = 4186 \\text{ J/kg}\\cdot^\\circ\\text{C}) \\)`,
             options: [`\\( ${ans} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], answer: 0,
@@ -339,10 +442,10 @@ const generators = [
     function() {
         let m = (Math.random()*3+0.5).toFixed(2);
         let Lf = 3.33e5;
-        let ans = (m * Lf).toExponential(2);
-        let d1 = (m * 4186).toExponential(2);
-        let d2 = (Lf / m).toExponential(2);
-        let d3 = (m * 2.26e6).toExponential(2);
+        let ans = sci(m * Lf);
+        let d1 = sci(m * 4186);
+        let d2 = sci(Lf / m);
+        let d3 = sci(m * 2.26e6);
         return {
             q: `How much heat is required to completely melt \\( ${m} \\text{ kg} \\) of ice at \\( 0 \\, ^\\circ\\text{C} \\)? \\( (L_f = 3.33 \\times 10^5 \\text{ J/kg}) \\)`,
             options: [`\\( ${ans} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], answer: 0,
@@ -355,7 +458,7 @@ const generators = [
         let Q_J = Q * 1e6;
         let Lv = 2.26e6;
         let m = (Q_J / Lv).toFixed(3);
-        let d1 = (Q_J * Lv).toExponential(2);
+        let d1 = sci(Q_J * Lv);
         let d2 = (Q_J / 3.33e5).toFixed(3);
         let d3 = (Q_J / 4186).toFixed(3);
         return {
@@ -408,10 +511,10 @@ const generators = [
         let c_w = 4186;
         let Ti = -1 * Math.floor(Math.random()*15+5);
         let Tf = Math.floor(Math.random()*20+10);
-        let Q_tot = (m * c_ice * (0 - Ti) + m * L_f + m * c_w * (Tf - 0)).toExponential(2);
-        let d1 = (m * L_f).toExponential(2);
-        let d2 = (m * c_w * (Tf - 0) + m * c_ice * (0 - Ti)).toExponential(2);
-        let d3 = ((m*c_w*(Tf-Ti))).toExponential(2);
+        let Q_tot = sci(m * c_ice * (0 - Ti) + m * L_f + m * c_w * (Tf - 0));
+        let d1 = sci(m * L_f);
+        let d2 = sci(m * c_w * (Tf - 0) + m * c_ice * (0 - Ti));
+        let d3 = sci(m * c_w * (Tf - Ti));
         return {
             q: `Calculate the total heat required to convert \\( ${m} \\text{ kg} \\) of ice at \\( ${Ti} \\, ^\\circ\\text{C} \\) to water at \\( ${Tf} \\, ^\\circ\\text{C} \\). \\( (c_{\\text{ice}} = 2090, c_{\\text{water}} = 4186, L_f = 3.33 \\times 10^5 \\text{ in SI units}) \\)`,
             options: [`\\( ${Q_tot} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], answer: 0,
@@ -424,10 +527,10 @@ const generators = [
         let c_w = 4186;
         let L_v = 2.26e6;
         let Ti = Math.floor(Math.random()*30+50);
-        let Q_tot = (m * c_w * (100 - Ti) + m * L_v).toExponential(2);
-        let d1 = (m * L_v).toExponential(2);
-        let d2 = (m * c_w * (100 - Ti)).toExponential(2);
-        let d3 = (m * c_w * 100).toExponential(2);
+        let Q_tot = sci(m * c_w * (100 - Ti) + m * L_v);
+        let d1 = sci(m * L_v);
+        let d2 = sci(m * c_w * (100 - Ti));
+        let d3 = sci(m * c_w * 100);
         return {
             q: `How much heat must be added to \\( ${m} \\text{ kg} \\) of water at \\( ${Ti} \\, ^\\circ\\text{C} \\) to completely boil it into steam at \\( 100 \\, ^\\circ\\text{C} \\)? \\( (c_{\\text{water}} = 4186, L_v = 2.26 \\times 10^6 \\text{ in SI units}) \\)`,
             options: [`\\( ${Q_tot} \\text{ J} \\)`, `\\( ${d1} \\text{ J} \\)`, `\\( ${d2} \\text{ J} \\)`, `\\( ${d3} \\text{ J} \\)`], answer: 0,
@@ -474,42 +577,46 @@ document.body.addEventListener("mouseleave", () => {
     if (inQuiz) mouseLeaves++;
 });
 
-// Initialization
-document.getElementById('start-btn').addEventListener('click', () => {
+document.getElementById('start-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
     nameDialog.classList.remove('hidden');
 });
 
 document.getElementById('submit-name-btn').addEventListener('click', () => {
     studentName = studentNameInput.value.trim() || "Nameless Traveler";
+    
+    // Audio Crossfade: Intro Out -> Aura In
+    fadeAudio(audioIntro, 0, 1000);
+    setTimeout(() => fadeAudio(audioAura, 0.1, 1000, 0), 1000);
+    
     nameDialog.classList.add('hidden');
     startQuiz();
 });
 
+function switchScreen(oldScreen, newScreen) {
+    oldScreen.classList.remove('active');
+    setTimeout(() => {
+        newScreen.classList.remove('hidden');
+        void newScreen.offsetWidth; // Trigger reflow
+        newScreen.classList.add('active');
+    }, 800);
+}
+
 function startQuiz() {
-    // Prep attempts
     attempts++;
     localStorage.setItem('hsr_quiz_attempts', attempts.toString());
     
-    // Build and Shuffle
     let conceptuals = rawConceptual.map(shuffleConceptual);
     conceptuals.sort(() => Math.random() - 0.5);
-    
     let problems = generators.map(g => shuffleProblem(g()));
     problems.sort(() => Math.random() - 0.5);
     
     quizQuestions = [...conceptuals, ...problems];
+    score = 0; currentQIndex = 0; altTabs = 0; mouseLeaves = 0;
+    inQuiz = true; startTime = new Date();
     
-    score = 0;
-    currentQIndex = 0;
-    altTabs = 0;
-    mouseLeaves = 0;
-    inQuiz = true;
-    startTime = new Date();
-    
-    screens.main.classList.remove('active');
-    screens.question.classList.add('active');
-    
-    loadQuestion();
+    switchScreen(screens.main, screens.question);
+    setTimeout(loadQuestion, 800);
 }
 
 function loadQuestion() {
@@ -525,22 +632,22 @@ function loadQuestion() {
         let btn = document.createElement('button');
         btn.className = 'choice-btn';
         btn.innerHTML = opt;
+        btn.style.animationDelay = `${idx * 0.1}s`;
+        btn.classList.add('animate-in');
         btn.onclick = () => selectAnswer(idx, btn);
         choicesContainer.appendChild(btn);
     });
     
-    // Typeset MathJax dynamically, gracefully checking if it's fully loaded
-    if (window.MathJax && MathJax.typesetPromise) {
-        MathJax.typesetPromise([qText, choicesContainer]).catch((err) => console.log(err.message));
-    }
+    MathJax.typesetPromise([qText, choicesContainer]).catch(err => console.log(err));
 }
 
 function selectAnswer(selectedIndex, btnElement) {
     let currentQ = quizQuestions[currentQIndex];
-    
-    // Disable all buttons
     let allBtns = choicesContainer.querySelectorAll('.choice-btn');
-    allBtns.forEach(b => b.disabled = true);
+    allBtns.forEach(b => {
+        b.disabled = true;
+        b.classList.remove('animate-in'); // prevent re-triggering animation
+    });
     
     if (selectedIndex === currentQ.answer) {
         btnElement.classList.add('correct');
@@ -551,18 +658,25 @@ function selectAnswer(selectedIndex, btnElement) {
     }
     
     feedbackText.innerHTML = currentQ.feedback;
-    feedbackContainer.classList.remove('hidden');
-    nextBtn.classList.remove('hidden');
     
-    if (window.MathJax && MathJax.typesetPromise) {
-        MathJax.typesetPromise([feedbackText]).catch((err) => console.log(err.message));
-    }
+    feedbackContainer.classList.remove('hidden');
+    feedbackContainer.classList.add('animate-up');
+    nextBtn.classList.remove('hidden');
+    nextBtn.classList.add('animate-up');
+    
+    MathJax.typesetPromise([feedbackText]).catch(err => console.log(err));
 }
 
 nextBtn.addEventListener('click', () => {
     currentQIndex++;
     if (currentQIndex < quizQuestions.length) {
-        loadQuestion();
+        bookContainer.style.opacity = 0;
+        bookContainer.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            loadQuestion();
+            bookContainer.style.opacity = 1;
+            bookContainer.style.transform = 'translateY(0)';
+        }, 500);
     } else {
         endQuiz();
     }
@@ -571,11 +685,14 @@ nextBtn.addEventListener('click', () => {
 function endQuiz() {
     inQuiz = false;
     endTime = new Date();
-    screens.question.classList.remove('active');
-    screens.score.classList.add('active');
+    
+    // Audio Crossfade: Aura Out -> Intro In (at 1:58)
+    fadeAudio(audioAura, 0, 1500);
+    setTimeout(() => fadeAudio(audioIntro, 0.25, 1500, 118), 1000);
+    
+    switchScreen(screens.question, screens.score);
     
     let pathData = determinePath();
-    
     document.getElementById('path-name').innerText = pathData.name;
     document.getElementById('score-display').innerText = `${score} / ${quizQuestions.length}`;
     document.getElementById('flavor-text').innerText = pathData.flavor;
@@ -585,56 +702,22 @@ function endQuiz() {
 function determinePath() {
     let percent = score / quizQuestions.length;
     let totalTimeSec = Math.floor((endTime - startTime) / 1000);
-
-    // Trickery
-    if (altTabs > 2 || mouseLeaves > 4) {
-        return { name: "Trickery", logo: "Trickery", flavor: "The cosmos is a stage, and you are not above peaking behind the curtains. Your wandering focus and frequent tab-switching reflects a mind looking for hidden variables—or simply outside help." };
-    }
-    // Strife
-    if ((altTabs > 0 || mouseLeaves > 2) && percent < 0.5) {
-        return { name: "Strife", logo: "Strife", flavor: "You sought an advantage but met resistance. The path of Strife is fraught with battles against one's own limitations, reminding you that shortcuts do not guarantee victory." };
-    }
-    // Passage
-    if (attempts > 2) {
-        return { name: "Passage", logo: "Passage", flavor: "You walk this trial repeatedly, learning from past missteps. Knowledge is a journey of iteration. You are willing to walk the Passage as many times as it takes." };
-    }
-    // Time
-    if (totalTimeSec > 1500) { // 25 mins
-        return { name: "Time", logo: "Time", flavor: "You ponder deeply, letting every second tick away as you weigh your choices. The River of Time flows slowly for those who meticulously calculate every heat exchange." };
-    }
-    // Law
-    if (altTabs === 0 && mouseLeaves === 0 && attempts === 1 && percent >= 0.7) {
-        return { name: "Law", logo: "Law", flavor: "Unwavering focus. You adhered strictly to the bounds of the trial, looking neither left nor right. The Law rewards those who command absolute self-discipline." };
-    }
-    // Reason
-    if (percent === 1.0) {
-        return { name: "Reason", logo: "Reason", flavor: "Flawless logic. Every calculation, every conceptual grasp was absolute. The Path of Reason is carved by those who see the universe not as chaos, but as an equation to be solved." };
-    }
-    // Sky
-    if (totalTimeSec < 300 && percent > 0.8) {
-        return { name: "Sky", logo: "Sky", flavor: "Swift and brilliant as a meteor. You soared through the challenges with breathtaking speed and accuracy. The Sky belongs to those who trust their instincts." };
-    }
-    // Death
-    if (percent < 0.4) {
-        return { name: "Death", logo: "Death", flavor: "The end of one journey is merely the beginning of another. The concepts slipped away this time, but from the ashes of failure, a deeper understanding can be born." };
-    }
-    // Worldbearing
-    if (percent >= 0.8) {
-        return { name: "Worldbearing", logo: "Worldbearing", flavor: "You carry the weight of knowledge with patience. Like the earth supporting the heavens, you demonstrated a solid foundation of thermal physics." };
-    }
-    // Earth
-    if (percent >= 0.6) {
-        return { name: "Earth", logo: "Earth", flavor: "Solid and dependable. You possess a grounding in thermodynamics, forming a sturdy bedrock of understanding that will withstand the test of time." };
-    }
-    // Ocean
-    if (percent >= 0.4) {
-        return { name: "Ocean", logo: "Ocean", flavor: "Your knowledge ebbs and flows like the tides. While some concepts are deep and profound, others remain on the surface. Keep diving deeper into the waves." };
-    }
-    // Romance (Default)
+    if (altTabs > 2 || mouseLeaves > 4) return { name: "Trickery", logo: "Trickery", flavor: "The cosmos is a stage, and you are not above peaking behind the curtains. Your wandering focus and frequent tab-switching reflects a mind looking for hidden variables or simply outside help." };
+    if ((altTabs > 0 || mouseLeaves > 2) && percent < 0.5) return { name: "Strife", logo: "Strife", flavor: "You sought an advantage but met resistance. The path of Strife is fraught with battles against one's own limitations, reminding you that shortcuts do not guarantee victory." };
+    if (attempts > 2) return { name: "Passage", logo: "Passage", flavor: "You walk this trial repeatedly, learning from past missteps. Knowledge is a journey of iteration. You are willing to walk the Passage as many times as it takes." };
+    if (totalTimeSec > 1500) return { name: "Time", logo: "Time", flavor: "You ponder deeply, letting every second tick away as you weigh your choices. The River of Time flows slowly for those who meticulously calculate every heat exchange." };
+    if (altTabs === 0 && mouseLeaves === 0 && attempts === 1 && percent >= 0.7) return { name: "Law", logo: "Law", flavor: "Unwavering focus. You adhered strictly to the bounds of the trial, looking neither left nor right. The Law rewards those who command absolute self-discipline." };
+    if (percent === 1.0) return { name: "Reason", logo: "Reason", flavor: "Flawless logic. Every calculation, every conceptual grasp was absolute. The Path of Reason is carved by those who see the universe not as chaos, but as an equation to be solved." };
+    if (totalTimeSec < 300 && percent > 0.8) return { name: "Sky", logo: "Sky", flavor: "Swift and brilliant as a meteor. You soared through the challenges with breathtaking speed and accuracy. The Sky belongs to those who trust their instincts." };
+    if (percent < 0.4) return { name: "Death", logo: "Death", flavor: "The end of one journey is merely the beginning of another. The concepts slipped away this time, but from the ashes of failure, a deeper understanding can be born." };
+    if (percent >= 0.8) return { name: "Worldbearing", logo: "Worldbearing", flavor: "You carry the weight of knowledge with patience. Like the earth supporting the heavens, you demonstrated a solid foundation of thermal physics." };
+    if (percent >= 0.6) return { name: "Earth", logo: "Earth", flavor: "Solid and dependable. You possess a grounding in thermodynamics, forming a sturdy bedrock of understanding that will withstand the test of time." };
+    if (percent >= 0.4) return { name: "Ocean", logo: "Ocean", flavor: "Your knowledge ebbs and flows like the tides. While some concepts are deep and profound, others remain on the surface. Keep diving deeper into the waves." };
     return { name: "Romance", logo: "Romance", flavor: "You view the laws of thermodynamics not just as cold equations, but as a beautiful dance of energy and temperature. Your journey is driven by passion and curiosity." };
 }
 
 document.getElementById('restart-btn').addEventListener('click', () => {
-    screens.score.classList.remove('active');
-    screens.main.classList.add('active');
+    switchScreen(screens.score, screens.main);
+    fadeAudio(audioIntro, 0, 1000);
+    setTimeout(() => fadeAudio(audioIntro, 0.25, 1000, 51), 1000);
 });
