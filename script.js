@@ -14,12 +14,15 @@ const feedbackText = document.getElementById('feedback-text');
 const nextBtn = document.getElementById('next-btn');
 const bookContainer = document.querySelector('.book-container');
 
-// Audio Elements
+// Audio & Controls Elements
 const audioIntro = document.getElementById('audio-intro');
 const audioAura = document.getElementById('audio-aura');
 const muteBtn = document.getElementById('mute-btn');
 const iconMuted = document.getElementById('icon-muted');
 const iconUnmuted = document.getElementById('icon-unmuted');
+const fsBtn = document.getElementById('fullscreen-btn');
+const iconFsEnter = document.getElementById('icon-fs-enter');
+const iconFsExit = document.getElementById('icon-fs-exit');
 
 // Tracking variables
 let studentName = '';
@@ -68,14 +71,44 @@ function createGlitter() {
 }
 for (let i = 0; i < 70; i++) createGlitter();
 
+// --- FULLSCREEN CONTROLS ---
+fsBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch((err) => {
+            console.log(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+});
+document.addEventListener('fullscreenchange', () => {
+    if (document.fullscreenElement) {
+        iconFsEnter.classList.add('hidden');
+        iconFsExit.classList.remove('hidden');
+    } else {
+        iconFsEnter.classList.remove('hidden');
+        iconFsExit.classList.add('hidden');
+    }
+});
+
 // --- AUDIO SYSTEM ---
 function fadeAudio(audioElement, targetVolume, duration, startAt = null) {
     if (startAt !== null) {
         audioElement.currentTime = startAt;
-        let playPromise = audioElement.play();
-        if (playPromise !== undefined) {
-            playPromise.catch(e => console.log("Audio autoplay prevented by browser."));
-        }
+    }
+    
+    // Always attempt play unless specifically told to pause at 0
+    let playPromise = audioElement.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(e => {
+            // Autoplay is blocked by browser policy until interaction.
+            console.log("Audio autoplay prevented by browser.");
+            audioIntro.muted = true;
+            isMuted = true;
+            iconMuted.classList.remove('hidden');
+            iconUnmuted.classList.add('hidden');
+            document.getElementById('audio-hint').classList.remove('hidden');
+        });
     }
     
     let startVol = audioElement.volume;
@@ -98,16 +131,29 @@ function fadeAudio(audioElement, targetVolume, duration, startAt = null) {
     }, stepTime);
 }
 
-// Initialize audio on first user interaction anywhere (Browser policy requirement)
+// Auto-play attempt on load
+window.addEventListener('load', () => {
+    audioIntro.volume = 0;
+    audioIntro.currentTime = 51;
+    // We try to play automatically. If blocked, the catch block in fadeAudio handles it.
+    fadeAudio(audioIntro, 0.25, 1000);
+});
+
+// Unmute automatically on first interaction if blocked by browser
 document.body.addEventListener('click', () => {
     if (audioInitialized) return;
     audioInitialized = true;
-    isMuted = false;
-    iconMuted.classList.add('hidden');
-    iconUnmuted.classList.remove('hidden');
     
-    audioIntro.volume = 0;
-    fadeAudio(audioIntro, 0.25, 1000, 51);
+    // Only unmute if the user didn't explicitly click the mute button
+    if (isMuted && audioIntro.muted) {
+        isMuted = false;
+        iconMuted.classList.add('hidden');
+        iconUnmuted.classList.remove('hidden');
+        document.getElementById('audio-hint').classList.add('hidden');
+        audioIntro.muted = false;
+        audioIntro.volume = 0;
+        fadeAudio(audioIntro, 0.25, 1000, 51);
+    }
 }, { once: true });
 
 // Persistent Mute/Unmute Toggle
@@ -124,6 +170,7 @@ muteBtn.addEventListener('click', (e) => {
         iconUnmuted.classList.remove('hidden');
         audioIntro.muted = false;
         audioAura.muted = false;
+        document.getElementById('audio-hint').classList.add('hidden');
         if (!audioInitialized) {
             audioInitialized = true;
             audioIntro.volume = 0;
@@ -132,26 +179,26 @@ muteBtn.addEventListener('click', (e) => {
     }
 });
 
-// --- DEBUG MODE LOGIC (Ctrl + Alt + M + Left Arrow) ---
-let keyState = { ctrl: false, alt: false, arrowleft: false, m: false };
+// --- DEBUG MODE LOGIC (Ctrl + Alt + Shift + M) ---
+let keyState = { ctrl: false, alt: false, shift: false, m: false };
 
 window.addEventListener('keydown', (e) => {
     let key = e.key.toLowerCase();
     if (key === 'control') keyState.ctrl = true;
     if (key === 'alt') keyState.alt = true;
-    if (key === 'arrowleft') keyState.arrowleft = true;
+    if (key === 'shift') keyState.shift = true;
     if (key === 'm') keyState.m = true;
 
     // Trigger debug mode
-    if (keyState.ctrl && keyState.alt && keyState.arrowleft && keyState.m) {
+    if (keyState.ctrl && keyState.alt && keyState.shift && keyState.m) {
         if (!isDebugMode) activateDebugMode();
     }
 
     // Navigation inside debug mode
     if (isDebugMode) {
-        if (key === 'arrowleft' && !keyState.ctrl) {
+        if (e.key === 'ArrowLeft') {
             cycleDebugPath(-1);
-        } else if (key === 'arrowright') {
+        } else if (e.key === 'ArrowRight') {
             cycleDebugPath(1);
         }
     }
@@ -161,7 +208,7 @@ window.addEventListener('keyup', (e) => {
     let key = e.key.toLowerCase();
     if (key === 'control') keyState.ctrl = false;
     if (key === 'alt') keyState.alt = false;
-    if (key === 'arrowleft') keyState.arrowleft = false;
+    if (key === 'shift') keyState.shift = false;
     if (key === 'm') keyState.m = false;
 });
 
@@ -655,9 +702,9 @@ document.getElementById('start-btn').addEventListener('click', (e) => {
 document.getElementById('submit-name-btn').addEventListener('click', () => {
     studentName = studentNameInput.value.trim() || "Nameless Traveler";
     
-    // Audio Crossfade: Intro Out -> Aura In
+    // Audio Crossfade: Intro Out -> Aura In (Reduced to 0.05 volume)
     fadeAudio(audioIntro, 0, 1000);
-    setTimeout(() => fadeAudio(audioAura, 0.1, 1000, 0), 1000);
+    setTimeout(() => fadeAudio(audioAura, 0.05, 1000, 0), 1000);
     
     nameDialog.classList.add('hidden');
     startQuiz();
@@ -718,9 +765,14 @@ function selectAnswer(selectedIndex, btnElement) {
     let allBtns = choicesContainer.querySelectorAll('.choice-btn');
     
     // Disable and lock visibility styles to prevent CSS animations from overriding highlighting
-    allBtns.forEach(b => {
+    allBtns.forEach((b, idx) => {
         b.disabled = true;
         b.classList.remove('animate-in'); 
+        
+        // Add neutral locked state so unselected options stay fully visible
+        if (idx !== selectedIndex && idx !== currentQ.answer) {
+            b.classList.add('neutral-locked');
+        }
     });
     
     if (selectedIndex === currentQ.answer) {

@@ -30,6 +30,36 @@ body {
     perspective: 1200px;
 }
 
+/* Ambient Background Animations */
+.nebula {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.3;
+}
+#ambient-nebula-1 {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(138, 43, 226, 0.5) 0%, transparent 70%);
+    top: -200px;
+    left: -200px;
+    animation: drift 25s ease-in-out infinite alternate;
+}
+#ambient-nebula-2 {
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(0, 191, 255, 0.4) 0%, transparent 70%);
+    bottom: -300px;
+    right: -200px;
+    animation: drift 30s ease-in-out infinite alternate-reverse;
+}
+@keyframes drift {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(100px, 50px) scale(1.1); }
+}
+
 /* Animations */
 @keyframes fadeIn {
     from { opacity: 0; }
@@ -60,6 +90,9 @@ body {
     50% { filter: drop-shadow(0 0 35px rgba(212, 175, 55, 1)) brightness(2.5); }
     100% { filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.6)) brightness(1.8); }
 }
+@keyframes fadeInSlide {
+    to { opacity: 1; transform: translateX(0); }
+}
 
 .pulse-anim { animation: pulseGlow 3s infinite; }
 
@@ -68,7 +101,7 @@ body {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
     pointer-events: none;
-    z-index: 0;
+    z-index: 1;
 }
 .glitter-particle {
     position: absolute;
@@ -78,11 +111,17 @@ body {
     opacity: 0;
 }
 
-/* Audio Control */
-.audio-control {
+/* Audio & Fullscreen Control Container */
+.top-controls {
     position: fixed;
     top: 25px;
     right: 25px;
+    display: flex;
+    gap: 15px;
+    z-index: 1001;
+}
+
+.audio-control {
     background: rgba(10, 15, 37, 0.7);
     border: 1px solid rgba(212, 175, 55, 0.6);
     color: #d4af37;
@@ -90,7 +129,6 @@ body {
     height: 50px;
     border-radius: 50%;
     cursor: pointer;
-    z-index: 1001;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -271,6 +309,8 @@ body {
 }
 .left-page {
     border-right: 1px solid rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
 }
 
 .question-header {
@@ -281,6 +321,7 @@ body {
     letter-spacing: 2px;
     border-bottom: 2px solid #d4af37;
     padding-bottom: 15px;
+    flex-shrink: 0; /* Keep header at top */
 }
 #question-text {
     font-size: 1.35rem;
@@ -288,6 +329,7 @@ body {
     font-family: 'Georgia', serif;
     color: #1e293b;
     overflow-x: auto;
+    flex-grow: 1; /* Pushes feedback container to bottom */
 }
 
 /* Choices and Dynamic Elements */
@@ -313,9 +355,6 @@ body {
 .choice-btn.animate-in {
     animation: fadeInSlide 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
-@keyframes fadeInSlide {
-    to { opacity: 1; transform: translateX(0); }
-}
 .choice-btn:hover:not(:disabled) {
     border-color: #d4af37;
     background: #fff;
@@ -338,9 +377,15 @@ body {
     color: #7f1d1d !important;
     opacity: 1 !important;
 }
+.choice-btn.neutral-locked {
+    /* Keeps visibility 100% for non-selected/non-correct answers */
+    opacity: 1 !important;
+    background-color: #f1f5f9 !important;
+    color: #64748b !important;
+    transform: scale(1) !important;
+}
 .choice-btn:disabled {
     cursor: not-allowed;
-    /* Removed opacity drop to ensure visibility remains sharp */
 }
 
 #feedback-container {
@@ -348,8 +393,9 @@ body {
     padding: 25px;
     border-left: 6px solid #d4af37;
     border-radius: 0 8px 8px 0;
-    margin-bottom: 25px;
+    margin-top: 25px;
     box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+    flex-shrink: 0; /* Prevents it from crushing */
 }
 #feedback-container h3 {
     margin-bottom: 15px;
@@ -384,54 +430,55 @@ mjx-container {
     animation: slideUpFade 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
-/* Score Screen */
+/* Score Screen (Resized wider, shorter) */
 .score-card {
     background: rgba(10, 15, 37, 0.85);
     border: 2px solid rgba(212, 175, 55, 0.9);
-    padding: 60px;
+    padding: 40px 60px; /* Reduced vertical padding */
     border-radius: 15px;
     text-align: center;
-    max-width: 900px;
+    width: 95vw; /* Much wider horizontally */
+    max-width: 1100px;
     box-shadow: 0 0 60px rgba(0, 150, 255, 0.4), inset 0 0 40px rgba(212, 175, 55, 0.3);
     backdrop-filter: blur(20px);
 }
 .score-card h2 {
     color: #e2e8f0;
     font-weight: 400;
+    margin-bottom: 5px;
 }
 #score-student-name {
-    font-size: 2rem;
+    font-size: 1.8rem;
     color: #f8fafc;
-    margin-bottom: 5px;
 }
 .path-glow {
     font-family: 'Georgia', serif;
-    font-size: 4.5rem;
+    font-size: 4rem; /* Slightly reduced */
     color: #d4af37;
     text-shadow: 0 0 30px rgba(212, 175, 55, 1), 0 0 60px rgba(212, 175, 55, 0.6);
-    margin: 20px 0 30px 0;
+    margin: 15px 0 20px 0;
     letter-spacing: 3px;
 }
 #score-display {
-    font-size: 2.2rem;
+    font-size: 2rem;
     color: #f8fafc;
-    margin-bottom: 40px;
+    margin-bottom: 25px;
     text-shadow: 0 0 15px rgba(255,255,255,0.4);
 }
 #path-logo {
-    width: 240px;
+    width: 200px; /* Slightly reduced */
     height: auto;
-    margin: 0 auto 40px;
+    margin: 0 auto 25px;
     display: block;
 }
 .flavor-text-container {
     background: rgba(255, 255, 255, 0.05);
-    padding: 35px;
+    padding: 25px 35px;
     border-radius: 12px;
     border: 1px solid rgba(212, 175, 55, 0.4);
     font-style: italic;
-    line-height: 1.8;
-    font-size: 1.15rem;
+    line-height: 1.6;
+    font-size: 1.1rem;
     color: #f1f5f9;
     box-shadow: inset 0 0 25px rgba(0,0,0,0.6);
     text-align: justify;
