@@ -124,20 +124,20 @@ body {
     to { opacity: 1; transform: translateX(0); }
 }
 
-/* Simulation Glitch Effect (Tech Red) - Applied to whole screen */
-body.glitch-effect {
-    animation: techGlitch 0.4s cubic-bezier(.25, .46, .45, .94) both !important;
+/* Question Glitch Effect (Soft Red/Cyan Shift, No Shaking) */
+.glitch-effect {
+    animation: techGlitch 0.5s ease-in-out both !important;
 }
 @keyframes techGlitch {
-    0% { transform: translate(0); filter: hue-rotate(0deg); box-shadow: none; }
-    20% { transform: translate(-10px, 10px); filter: hue-rotate(-50deg) contrast(150%); box-shadow: -10px 0 0 red, 10px 0 0 cyan; }
-    40% { transform: translate(10px, -10px) skewX(2deg); filter: hue-rotate(50deg) invert(10%); box-shadow: 10px 0 0 red, -10px 0 0 cyan; }
-    60% { transform: translate(-5px, 5px) skewX(-2deg); filter: hue-rotate(-20deg); box-shadow: -5px 0 0 red, 5px 0 0 cyan; }
-    80% { transform: translate(5px, -5px); filter: hue-rotate(20deg); box-shadow: 5px 0 0 red, -5px 0 0 cyan; }
-    100% { transform: translate(0); filter: hue-rotate(0deg); box-shadow: none; }
+    0% { filter: hue-rotate(0deg); box-shadow: none; }
+    20% { filter: hue-rotate(-20deg) contrast(110%); box-shadow: -2px 0 0 rgba(255,0,0,0.4), 2px 0 0 rgba(0,255,255,0.4); }
+    40% { filter: hue-rotate(20deg) invert(5%); box-shadow: 2px 0 0 rgba(255,0,0,0.4), -2px 0 0 rgba(0,255,255,0.4); }
+    60% { filter: hue-rotate(-10deg); box-shadow: -1px 0 0 rgba(255,0,0,0.4), 1px 0 0 rgba(0,255,255,0.4); }
+    80% { filter: hue-rotate(10deg); box-shadow: 1px 0 0 rgba(255,0,0,0.4), -1px 0 0 rgba(0,255,255,0.4); }
+    100% { filter: hue-rotate(0deg); box-shadow: none; }
 }
 
-/* TV Scanline Overlay (Twitching & More Obvious) */
+/* TV Scanline Overlay (Twitching, Lighter interference) */
 #scanline-overlay {
     position: fixed;
     top: 0; left: 0; width: 100vw; height: 100vh;
@@ -145,19 +145,19 @@ body.glitch-effect {
         to bottom,
         rgba(255,255,255,0),
         rgba(255,255,255,0) 50%,
-        rgba(0,0,0,0.3) 50%,
-        rgba(0,0,0,0.3)
+        rgba(0,0,0,0.15) 50%,
+        rgba(0,0,0,0.15)
     );
     background-size: 100% 6px;
     z-index: 9998; 
     pointer-events: none;
-    opacity: 0.7;
+    opacity: 0.35;
     animation: scanlineFlicker 0.15s infinite;
 }
 @keyframes scanlineFlicker {
-    0% { opacity: 0.6; transform: translateY(0); }
-    50% { opacity: 0.8; transform: translateY(2px); }
-    100% { opacity: 0.6; transform: translateY(0); }
+    0% { opacity: 0.25; transform: translateY(0); }
+    50% { opacity: 0.35; transform: translateY(2px); }
+    100% { opacity: 0.25; transform: translateY(0); }
 }
 
 /* Aha Mask Event */
@@ -165,7 +165,7 @@ body.glitch-effect {
     position: fixed;
     z-index: 9999;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease;
 }
 #aha-mask {
     width: 60px;
@@ -195,31 +195,18 @@ body.glitch-effect {
     100% { transform: scaleY(1.5); opacity: 1; }
 }
 
-/* Aha Terminal Hack Screen (Dynamic Pink/Red Interference Background) */
+/* Aha Terminal Hack Screen (Simple Black with Scanlines overlay handled via z-index) */
 #aha-hack-screen {
     position: fixed;
     top: 0; left: 0; width: 100vw; height: 100vh;
     background-color: #050000;
-    z-index: 10000;
+    z-index: 9997; /* Underneath the scanlines */
     font-family: 'Courier New', Courier, monospace;
     padding: 40px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     text-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
-    background-image: 
-        repeating-linear-gradient(to bottom, transparent 0, transparent 2px, rgba(255, 0, 85, 0.2) 3px, rgba(255, 0, 85, 0.2) 4px),
-        repeating-linear-gradient(to bottom, transparent 0, transparent 5px, rgba(138, 0, 255, 0.15) 6px, rgba(138, 0, 255, 0.15) 7px),
-        repeating-linear-gradient(to right, rgba(255, 0, 0, 0.1) 0, rgba(255, 0, 0, 0.1) 1px, transparent 1px, transparent 10px);
-    animation: ahaRedGlitch 0.4s infinite alternate;
-}
-@keyframes ahaRedGlitch {
-    0% { background-position: 0 0, 0 0, 0 0; }
-    20% { background-position: -5px 2px, 2px -2px, 5px 0; }
-    40% { background-position: 5px -1px, -2px 5px, -5px 0; }
-    60% { background-position: 0 5px, 5px 0, 2px 0; }
-    80% { background-position: -2px -5px, 0 2px, -2px 0; }
-    100% { background-position: 2px 0, -5px -2px, 0 0; }
 }
 
 #aha-terminal {
