@@ -529,8 +529,8 @@ function loadQuestion() {
         choicesContainer.appendChild(btn);
     });
     
-    // Typeset MathJax dynamically
-    if (window.MathJax) {
+    // Typeset MathJax dynamically, gracefully checking if it's fully loaded
+    if (window.MathJax && MathJax.typesetPromise) {
         MathJax.typesetPromise([qText, choicesContainer]).catch((err) => console.log(err.message));
     }
 }
@@ -554,8 +554,8 @@ function selectAnswer(selectedIndex, btnElement) {
     feedbackContainer.classList.remove('hidden');
     nextBtn.classList.remove('hidden');
     
-    if (window.MathJax) {
-        MathJax.typesetPromise([feedbackText]);
+    if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([feedbackText]).catch((err) => console.log(err.message));
     }
 }
 

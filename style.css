@@ -7,10 +7,31 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    /* Uses the referenced HSR background image or falls back to a starry gradient */
-    background: url('as-ive-written-v0-anIzZXExc2VicTVmMaMJR50GXHKUJgEWjDY71crE0cIQy6ZTIYLOX4ioeXOJ.webp') no-repeat center center fixed, 
-                linear-gradient(to bottom, #060b19, #131b33, #0a0f25);
+    /* Pure CSS Generated HSR "As I've Written" Background */
+    background-color: #0b1126; /* Dark space blue */
+    background-image:
+        /* Glowing magical center */
+        radial-gradient(circle at 50% 45%, rgba(60, 90, 200, 0.25) 0%, transparent 55%),
+        /* Aurora / Nebula sweeps */
+        radial-gradient(ellipse at 10% 20%, rgba(100, 50, 200, 0.2) 0%, transparent 60%),
+        radial-gradient(ellipse at 90% 30%, rgba(0, 180, 255, 0.15) 0%, transparent 50%),
+        /* The Horizon Line and Ocean reflection */
+        linear-gradient(to bottom, transparent 65%, rgba(100, 180, 255, 0.15) 70%, #060a14 73%, #02050a 100%),
+        /* Large Bright Stars */
+        radial-gradient(1.5px 1.5px at 15% 20%, #ffffff 100%, transparent),
+        radial-gradient(2px 2px at 80% 15%, #e0f0ff 100%, transparent),
+        radial-gradient(2.5px 2.5px at 45% 30%, #d4af37 100%, transparent),
+        /* Medium Stars */
+        radial-gradient(1px 1px at 85% 45%, #00ffff 100%, transparent),
+        radial-gradient(1.5px 1.5px at 25% 60%, #ffffff 100%, transparent),
+        radial-gradient(1px 1px at 65% 50%, #d4af37 100%, transparent),
+        /* Scattered Tiny Stars (Night Sky) */
+        radial-gradient(0.5px 0.5px at 30% 10%, #fff 100%, transparent),
+        radial-gradient(0.5px 0.5px at 55% 25%, #fff 100%, transparent),
+        radial-gradient(0.5px 0.5px at 75% 55%, #fff 100%, transparent),
+        radial-gradient(0.5px 0.5px at 10% 40%, #fff 100%, transparent);
     background-size: cover;
+    background-attachment: fixed;
     color: #cbd5e1;
     overflow-x: hidden;
     height: 100vh;
